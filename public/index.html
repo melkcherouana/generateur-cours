@@ -426,9 +426,10 @@ let blocks = [
   { id: uid(), type: 'progressive' },
 ];
 
-let course = null;
-let dragIdx = null;
-let overIdx = null;
+let course     = null;
+let downloadId = null;
+let dragIdx    = null;
+let overIdx    = null;
 
 function uid() { return Math.random().toString(36).slice(2); }
 
@@ -532,7 +533,8 @@ async function generate() {
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Erreur serveur');
-    course = d.course;
+    course     = d.course;
+    downloadId = d.downloadId || null;
     renderCourse(course, val('level'));
   } catch (e) {
     showErr('Erreur : ' + e.message);
@@ -645,28 +647,28 @@ function toggle(i) {
   document.getElementById('ch' + i).classList.toggle('open');
 }
 
-// ── Download ──────────────────────────────────────────────────────────────
-async function download() {
+// ── Download — compatible iframe Wix ─────────────────────────────────────
+function download() {
   if (!course) return;
-  try {
-    const r = await fetch('/api/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ course })
-    });
-    if (!r.ok) throw new Error('Erreur génération fichier');
-    const blob = await r.blob();
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(blob),
-      download: course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx'
-    });
-    a.click();
-    URL.revokeObjectURL(a.href);
-  } catch (e) { showErr('Erreur téléchargement : ' + e.message); }
+
+  // Priorité : URL GET avec l'ID temporaire (window.open fonctionne dans les iframes)
+  if (downloadId) {
+    window.open('/api/download/' + downloadId, '_blank');
+    return;
+  }
+
+  // Fallback : lien <a> target="_blank" vers une URL de données POST
+  // (cas où downloadId n'est pas disponible)
+  const a = document.createElement('a');
+  a.href = '/api/download-fallback';
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.click();
 }
 
 function resetCourse() {
   course = null;
+  downloadId = null;
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('topic').value = '';
   document.getElementById('topic').focus();

@@ -103,6 +103,17 @@ const JSON_SCHEMA = `{
   ]
 }`;
 
+// ── Cache temporaire des cours (download par GET) ────────────────────────
+const courseCache = new Map();
+function storeCourse(course) {
+  const id = Math.random().toString(36).slice(2, 10);
+  courseCache.set(id, { course, ts: Date.now() });
+  // Nettoyage des entrées > 2 h
+  for (const [k, v] of courseCache)
+    if (Date.now() - v.ts > 7200000) courseCache.delete(k);
+  return id;
+}
+
 // ── Réparation JSON tronqué ───────────────────────────────────────────────
 function extractJson(raw) {
   const str = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
@@ -204,8 +215,9 @@ ${JSON_SCHEMA}`;
 
     const data = await response.json();
     if (data.stop_reason === 'max_tokens') console.warn('Réponse tronquée — réparation JSON');
-    const course = extractJson(data.content[0].text.trim());
-    res.json({ course });
+    const course     = extractJson(data.content[0].text.trim());
+    const downloadId = storeCourse(course);
+    res.json({ course, downloadId });
 
   } catch (err) {
     console.error(err);
@@ -298,10 +310,8 @@ function makeTable(headers, rows) {
   });
 }
 
-// ── Export .docx ──────────────────────────────────────────────────────────
-app.post('/api/download', async (req, res) => {
-  const { course } = req.body;
-  if (!course) return res.status(400).json({ error: 'Données du cours manquantes.' });
+// ── Fonction de génération du buffer docx ────────────────────────────────
+async function buildDocx(course) {
 
   try {
     const children = [];
@@ -539,14 +549,45 @@ app.post('/api/download', async (req, res) => {
       }
     });
 
-    const doc = new Document({ sections: [{ children }] });
+    const doc      = new Document({ sections: [{ children }] });
     const buffer   = await Packer.toBuffer(doc);
     const filename = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx';
+    return { buffer, filename };
+  } catch (err) { throw err; }
+}
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+// ── Headers communs pour téléchargement iframe-compatible ─────────────────
+function setDownloadHeaders(res, filename) {
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-Frame-Options', 'ALLOWALL');
+  res.setHeader('Content-Security-Policy', 'frame-ancestors *');
+}
+
+// ── GET /api/download/:id — ouvert via window.open() depuis l'iframe ──────
+app.get('/api/download/:id', async (req, res) => {
+  const entry = courseCache.get(req.params.id);
+  if (!entry) return res.status(404).send('Lien expiré ou invalide. Régénérez le cours.');
+  try {
+    const { buffer, filename } = await buildDocx(entry.course);
+    setDownloadHeaders(res, filename);
     res.send(buffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erreur génération docx : ' + err.message);
+  }
+});
 
+// ── POST /api/download — rétrocompatibilité ───────────────────────────────
+app.post('/api/download', async (req, res) => {
+  const { course } = req.body;
+  if (!course) return res.status(400).json({ error: 'Données du cours manquantes.' });
+  try {
+    const { buffer, filename } = await buildDocx(course);
+    setDownloadHeaders(res, filename);
+    res.send(buffer);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
