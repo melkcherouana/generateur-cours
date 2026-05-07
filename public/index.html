@@ -370,7 +370,7 @@
       <span class="actions-info" id="actInfo"></span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
-        <a id="dlLink" class="btn btn-dl" href="#" target="_blank" rel="noopener" style="display:none;text-decoration:none;">⬇ Télécharger .docx</a>
+        <button id="dlBtn" class="btn btn-dl" onclick="download()" style="display:none;">⬇ Télécharger .docx</button>
       </div>
     </div>
   </div>
@@ -625,9 +625,7 @@ async function generate() {
     downloadId = d.downloadId || null;
     renderCourse(course, classe);
     if (downloadId) {
-      const lnk = document.getElementById('dlLink');
-      lnk.href  = window.location.origin + '/api/download/' + downloadId;
-      lnk.style.display = '';
+      document.getElementById('dlBtn').style.display = '';
     }
   } catch (e) {
     showErr('Erreur : ' + e.message);
@@ -737,10 +735,13 @@ function toggle(i) {
 }
 
 
+function download() {
+  if (downloadId) window.location.href = '/api/download/' + downloadId;
+}
+
 function resetCourse() {
   course = null; downloadId = null;
-  const lnk = document.getElementById('dlLink');
-  lnk.href = '#'; lnk.style.display = 'none';
+  document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('diplome').value = '';
   document.getElementById('custom').value  = '';
