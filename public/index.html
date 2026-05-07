@@ -370,14 +370,7 @@
       <span class="actions-info" id="actInfo"></span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
-      </div>
-      <div id="emailBox" style="display:none;margin-top:16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:16px;">
-        <div style="font-weight:700;color:#1e40af;margin-bottom:10px;font-size:14px;">📧 Recevoir le cours par email</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input id="emailInput" type="email" placeholder="votre@email.com" style="flex:1;min-width:180px;padding:9px 12px;border:1px solid #93C5FD;border-radius:7px;font-size:14px;outline:none;">
-          <button onclick="sendEmail()" id="sendBtn" style="background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:9px 20px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">Envoyer</button>
-        </div>
-        <div id="emailMsg" style="margin-top:8px;font-size:13px;display:none;"></div>
+        <button id="dlBtn" class="btn btn-dl" onclick="download()" style="display:none;">⬇ Télécharger .docx</button>
       </div>
     </div>
   </div>
@@ -632,7 +625,7 @@ async function generate() {
     downloadId = d.downloadId || null;
     renderCourse(course, classe);
     if (downloadId) {
-      document.getElementById('emailBox').style.display = '';
+      document.getElementById('dlBtn').style.display = '';
     }
   } catch (e) {
     showErr('Erreur : ' + e.message);
@@ -742,37 +735,13 @@ function toggle(i) {
 }
 
 
-async function sendEmail() {
-  const email = document.getElementById('emailInput').value.trim();
-  const msg   = document.getElementById('emailMsg');
-  const btn   = document.getElementById('sendBtn');
-  if (!email) { showEmailMsg('Entrez une adresse email.', '#DC2626'); return; }
-  btn.textContent = 'Envoi…'; btn.disabled = true;
-  try {
-    const r = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, downloadId })
-    });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || 'Erreur serveur');
-    showEmailMsg('✓ Email envoyé ! Vérifiez votre boîte mail (et les spams).', '#16A34A');
-  } catch(e) {
-    showEmailMsg('Erreur : ' + e.message, '#DC2626');
-  } finally {
-    btn.textContent = 'Envoyer'; btn.disabled = false;
-  }
-}
-function showEmailMsg(text, color) {
-  const el = document.getElementById('emailMsg');
-  el.textContent = text; el.style.color = color; el.style.display = '';
+function download() {
+  if (downloadId) window.open('/telecharger/' + downloadId, '_blank', 'width=480,height=260,toolbar=0,menubar=0,location=0');
 }
 
 function resetCourse() {
   course = null; downloadId = null;
-  document.getElementById('emailBox').style.display = 'none';
-  document.getElementById('emailInput').value = '';
-  document.getElementById('emailMsg').style.display = 'none';
+  document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('diplome').value = '';
   document.getElementById('custom').value  = '';

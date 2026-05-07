@@ -2,7 +2,6 @@ require('dotenv').config();
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
-const nodemailer = require('nodemailer');
 const {
   Document, Packer, Paragraph, TextRun,
   HeadingLevel, AlignmentType, BorderStyle,
@@ -1223,36 +1222,5 @@ app.post('/api/download', async (req, res) => {
   }
 });
 
-// ── Envoi du cours par email ──────────────────────────────────────────────
-app.post('/api/send-email', async (req, res) => {
-  const { email, downloadId } = req.body;
-  if (!email)      return res.status(400).json({ error: 'Adresse email requise.' });
-  if (!downloadId) return res.status(400).json({ error: 'Cours introuvable.' });
-
-  const entry = courseCache.get(downloadId);
-  if (!entry) return res.status(404).json({ error: 'Cours expiré — régénérez le cours.' });
-
-  try {
-    const { buffer, filename } = await buildDocx(entry.course);
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
-    });
-
-    await transporter.sendMail({
-      from: `"Générateur de Cours" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: `Votre cours : ${entry.course.title}`,
-      text: `Bonjour,\n\nVotre cours "${entry.course.title}" est joint en pièce jointe au format Word (.docx).\n\nBonne formation !`,
-      attachments: [{ filename, content: buffer }]
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Erreur email :', err);
-    res.status(500).json({ error: 'Erreur envoi email : ' + err.message });
-  }
-});
 
 app.listen(PORT, () => console.log(`Serveur démarré → http://localhost:${PORT}`));
