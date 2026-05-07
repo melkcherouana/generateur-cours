@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Générateur de Cours IA</title>
+  <title>Générateur de Cours IA — Commerce & Distribution</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,9 +40,7 @@
       letter-spacing: .07em; color: #aeaeb2; margin-bottom: 16px;
       display: flex; align-items: center; gap: 8px;
     }
-    .card-title::after {
-      content: ''; flex: 1; height: 1px; background: #f0f0f5;
-    }
+    .card-title::after { content: ''; flex: 1; height: 1px; background: #f0f0f5; }
 
     /* ── Form grid ── */
     .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -57,19 +55,18 @@
       outline: none; transition: border-color .15s;
     }
     input:focus, select:focus, textarea:focus { border-color: #5b4fcf; }
+    select:disabled { background: #f5f5f7; color: #aeaeb2; cursor: not-allowed; }
     textarea { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.5; }
 
     /* ── Block palette ── */
-    .palette {
-      display: flex; flex-wrap: wrap; gap: 7px;
-      margin-bottom: 16px;
-    }
+    .palette { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+    .palette-hint { font-size: .76rem; color: #6e6e73; margin-bottom: 10px; }
+
     .palette-btn {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 6px 12px; border-radius: 8px; border: 1.5px solid transparent;
       font-size: .8rem; font-weight: 600; cursor: pointer;
-      transition: transform .1s, box-shadow .1s;
-      user-select: none;
+      transition: transform .1s, box-shadow .1s; user-select: none;
     }
     .palette-btn:hover  { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
     .palette-btn:active { transform: translateY(0); }
@@ -82,20 +79,15 @@
     .pb-evaluation  { background:#fff1f2; border-color:#fda4af; color:#be123c; }
 
     /* ── Block list ── */
-    .block-list {
-      display: flex; flex-direction: column; gap: 6px;
-      min-height: 56px;
-    }
+    .block-list { display: flex; flex-direction: column; gap: 6px; min-height: 56px; }
 
     .block-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px;
-      border-radius: 10px; border: 1.5px solid #e5e5ea;
-      background: #fff;
-      cursor: grab; user-select: none;
+      padding: 10px 12px; border-radius: 10px; border: 1.5px solid #e5e5ea;
+      background: #fff; cursor: grab; user-select: none;
       transition: box-shadow .15s, opacity .15s;
     }
-    .block-item:active { cursor: grabbing; }
+    .block-item:active  { cursor: grabbing; }
     .block-item.dragging  { opacity: .4; }
     .block-item.drag-over { box-shadow: 0 0 0 2px #5b4fcf; border-color: #5b4fcf; }
 
@@ -125,8 +117,7 @@
 
     .empty-msg {
       text-align: center; padding: 18px; color: #aeaeb2;
-      font-size: .83rem; border: 1.5px dashed #d2d2d7;
-      border-radius: 10px;
+      font-size: .83rem; border: 1.5px dashed #d2d2d7; border-radius: 10px;
     }
 
     /* ── Buttons ── */
@@ -175,7 +166,6 @@
     .sections { margin-top: 18px; }
     .sec { border-radius: 11px; margin-bottom: 8px; overflow: hidden; border: 1.5px solid #e5e5ea; }
 
-    /* Type-specific left border colors */
     .sec-theory      { border-left: 3px solid #6366f1; }
     .sec-application { border-left: 3px solid #22c55e; }
     .sec-synthesis   { border-left: 3px solid #eab308; }
@@ -190,9 +180,7 @@
     }
     .sec-hd:hover { background: #fafafa; }
 
-    .sec-type-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-    }
+    .sec-type-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .dot-theory      { background: #6366f1; }
     .dot-application { background: #22c55e; }
     .dot-synthesis   { background: #eab308; }
@@ -212,19 +200,6 @@
 
     .sec-content { font-size: .855rem; color: #3a3a3c; line-height: 1.65; white-space: pre-line; margin-bottom: 12px; }
 
-    .kp-box, .ex-box {
-      padding: 10px 12px; border-radius: 8px; margin-bottom: 9px;
-    }
-    .kp-box { background: #f5f5f7; }
-    .ex-box  { background: #fff8f0; border-left: 3px solid #f5831f; border-radius: 0 8px 8px 0; }
-    .kp-box h4, .ex-box h4 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
-    .kp-box h4 { color: #3a3a3c; }
-    .ex-box h4 { color: #b35c00; }
-    .kp-box li { list-style: none; font-size: .82rem; color: #3a3a3c; padding: 2px 0 2px 13px; position: relative; }
-    .kp-box li::before { content: '·'; position: absolute; left: 2px; color: #5b4fcf; font-size: 1.1em; }
-    .ex-box p  { font-size: .83rem; color: #3a3a3c; font-style: italic; line-height: 1.5; }
-
-    /* ── Blocs pédagogiques dans l'aperçu ── */
     .def-box {
       padding: 10px 14px; margin: 10px 0;
       background: #eef2ff; border-left: 3px solid #6366f1;
@@ -246,15 +221,11 @@
       background: #fffbeb; border-left: 3px solid #f59e0b;
       border-radius: 0 8px 8px 0; font-size: .84rem; font-weight: 600; color: #92400e;
     }
-    .app-header {
-      font-size: .875rem; font-weight: 700; color: #1d4ed8; margin-bottom: 6px;
-    }
-    .context-text {
-      font-size: .84rem; color: #374151; font-style: italic; margin-bottom: 10px; line-height: 1.5;
-    }
+    .app-header { font-size: .875rem; font-weight: 700; color: #1d4ed8; margin-bottom: 6px; }
+    .context-text { font-size: .84rem; color: #374151; font-style: italic; margin-bottom: 10px; line-height: 1.5; }
     .qa-item { margin-bottom: 8px; }
     .qa-q    { font-size: .855rem; font-weight: 600; color: #1d1d1f; margin-bottom: 3px; }
-    .qa-a    { font-size: .84rem; color: #065f46; font-style: italic; padding-left: 14px; line-height: 1.5; }
+    .qa-a    { font-size: .84rem; color: #dc2626; font-style: italic; padding-left: 14px; line-height: 1.5; }
 
     .synth-point { margin-bottom: 10px; }
     .synth-point-title { font-size: .855rem; font-weight: 700; color: #1d1d1f; margin-bottom: 3px; }
@@ -288,45 +259,51 @@
   <div class="header">
     <div class="badge">IA · Anthropic Claude</div>
     <h1>Générateur de Cours</h1>
-    <p>Structurez votre cours par blocs, puis générez et exportez en Word.</p>
+    <p>Commerce &amp; Distribution — Bac Pro MDCD · CAP EPC</p>
   </div>
 
-  <!-- 1 · Informations générales -->
+  <!-- 1 · Diplôme & Référentiel -->
   <div class="card">
-    <div class="card-title">1 — Informations générales</div>
+    <div class="card-title">1 — Diplôme &amp; Référentiel</div>
     <div class="fg">
       <div class="field full">
-        <label for="topic">Sujet du cours</label>
-        <input id="topic" type="text" placeholder="ex : Les fonctions en Python, Le contrat de travail, La photosynthèse…" />
+        <label for="diplome">Diplôme</label>
+        <select id="diplome" onchange="onDiplomeChange()">
+          <option value="">— Choisir un diplôme —</option>
+          <option value="bac-pro-mdcd">Bac Pro MDCD — Métiers du Commerce et de la Distribution</option>
+          <option value="cap-epc">CAP EPC — Équipier Polyvalent du Commerce</option>
+        </select>
       </div>
       <div class="field full">
-        <label for="referentiel">Référentiel / Cadre pédagogique</label>
-        <select id="referentiel">
-          <option value="">— Aucun référentiel particulier —</option>
-          <option value="Enseignement primaire (CP–CM2)">Enseignement primaire (CP–CM2)</option>
-          <option value="Collège (6ème–3ème)">Collège (6ème–3ème)</option>
-          <option value="Lycée général et technologique">Lycée général et technologique</option>
-          <option value="Bac Professionnel">Bac Professionnel</option>
-          <option value="BTS / BUT">BTS / BUT</option>
-          <option value="Licence / Licence Pro">Licence / Licence Pro</option>
-          <option value="Master / Grandes Écoles">Master / Grandes Écoles</option>
-          <option value="Formation professionnelle continue">Formation professionnelle continue</option>
-          <option value="Autoformation / E-learning">Autoformation / E-learning</option>
+        <label for="activite">Activité</label>
+        <select id="activite" onchange="onActiviteChange()" disabled>
+          <option value="">— Choisir d'abord un diplôme —</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label for="competence">Compétence visée</label>
+        <select id="competence" disabled>
+          <option value="">— Choisir d'abord une activité —</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 · Paramètres pédagogiques -->
+  <div class="card">
+    <div class="card-title">2 — Paramètres pédagogiques</div>
+    <div class="fg">
+      <div class="field">
+        <label for="classe">Classe</label>
+        <select id="classe" disabled>
+          <option value="">— Choisir d'abord un diplôme —</option>
         </select>
       </div>
       <div class="field">
-        <label for="level">Niveau des apprenants</label>
-        <select id="level">
-          <option value="beginner">Débutant</option>
-          <option value="intermediate" selected>Intermédiaire</option>
-          <option value="advanced">Avancé</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="language">Langue du cours</label>
-        <select id="language">
-          <option value="fr" selected>Français</option>
-          <option value="en">English</option>
+        <label for="duree">Durée de la séance</label>
+        <select id="duree" onchange="onDureeChange()">
+          <option value="1h">1 heure — 3 parties</option>
+          <option value="2h">2 heures — 6 parties</option>
         </select>
       </div>
       <div class="field full">
@@ -339,14 +316,10 @@
     </div>
   </div>
 
-  <!-- 2 · Structure -->
+  <!-- 3 · Structure du cours -->
   <div class="card">
-    <div class="card-title">2 — Structure du cours</div>
-
-    <div style="font-size:.78rem;color:#6e6e73;margin-bottom:10px;">
-      Cliquez sur un bloc pour l'ajouter · Glissez pour réordonner · ✕ pour supprimer
-    </div>
-
+    <div class="card-title">3 — Structure du cours</div>
+    <p class="palette-hint">Cliquez sur un bloc pour l'ajouter · Glissez pour réordonner · ✕ pour supprimer</p>
     <div class="palette" id="palette">
       <button class="palette-btn pb-theory"      onclick="addBlock('theory')">      📘 Apport théorique</button>
       <button class="palette-btn pb-application" onclick="addBlock('application')"> 🔧 Application pratique</button>
@@ -355,16 +328,15 @@
       <button class="palette-btn pb-casestudy"   onclick="addBlock('casestudy')">   💡 Étude de cas</button>
       <button class="palette-btn pb-evaluation"  onclick="addBlock('evaluation')">  ❓ Évaluation</button>
     </div>
-
     <div class="block-list" id="blockList"></div>
   </div>
 
-  <!-- 3 · Instructions libres -->
+  <!-- 4 · Instructions personnalisées -->
   <div class="card">
-    <div class="card-title">3 — Instructions personnalisées <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c7c7cc;">(optionnel)</span></div>
+    <div class="card-title">4 — Instructions personnalisées <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c7c7cc;">(optionnel)</span></div>
     <div class="field">
-      <label for="custom">Modifier ou préciser l'architecture — décrivez librement vos contraintes pédagogiques</label>
-      <textarea id="custom" placeholder="ex : Commence par une question de mise en situation avant chaque apport théorique. Les exercices doivent utiliser des données réelles françaises. La synthèse doit prendre la forme d'une carte mentale décrite textuellement."></textarea>
+      <label for="custom">Précisez vos contraintes pédagogiques</label>
+      <textarea id="custom" placeholder="ex : Insistez sur les documents de réception (bon de livraison, bon de commande). Les exercices doivent utiliser des prix réels de grande distribution. Intégrer les règles d'hygiène alimentaire HACCP pour les produits frais."></textarea>
     </div>
   </div>
 
@@ -379,12 +351,12 @@
   <div class="card hidden" id="courseCard" style="margin-top:20px;">
     <div class="course-top">
       <div class="course-title" id="cTitle"></div>
-      <div class="pill" id="cLevel"></div>
+      <div class="pill" id="cPill"></div>
     </div>
     <div class="course-desc" id="cDesc"></div>
     <div class="meta">
       <span id="cDuration"></span>
-      <span id="cSections"></span>
+      <span id="cSectionsCount"></span>
     </div>
 
     <div class="objectives">
@@ -392,7 +364,7 @@
       <ul id="cObjectives"></ul>
     </div>
 
-    <div class="sections" id="cSections"></div>
+    <div class="sections" id="cSectionsList"></div>
 
     <div class="actions">
       <span class="actions-info" id="actInfo"></span>
@@ -406,34 +378,94 @@
 </div>
 
 <script>
-// ── Block definitions ─────────────────────────────────────────────────────
-const BLOCKS = {
-  theory:      { label: 'Apport théorique',     icon: '📘', cls: 'theory' },
-  application: { label: 'Application pratique', icon: '🔧', cls: 'application' },
-  synthesis:   { label: 'Synthèse',             icon: '🔄', cls: 'synthesis' },
-  progressive: { label: 'Exercices progressifs',icon: '📈', cls: 'progressive' },
-  casestudy:   { label: 'Étude de cas',         icon: '💡', cls: 'casestudy' },
-  evaluation:  { label: 'Évaluation',           icon: '❓', cls: 'evaluation' },
+// ── Référentiels ──────────────────────────────────────────────────────────
+const REFERENTIELS = {
+  'bac-pro-mdcd': {
+    label: 'Bac Pro MDCD',
+    classes: ['2nde Bac Pro', '1ère Bac Pro', 'Terminale Bac Pro'],
+    activites: {
+      'option-a': {
+        label: "Option A — Gestion des stocks et de l'espace commercial",
+        competences: [
+          'Réceptionner les livraisons',
+          'Contrôler les livraisons',
+          'Contribuer à la gestion des stocks',
+          'Participer aux inventaires',
+          'Mettre en œuvre des actions promotionnelles',
+          "Gérer l'espace commercial au quotidien",
+        ]
+      },
+      'option-b': {
+        label: 'Option B — Prospection et vente à distance',
+        competences: [
+          'Préparer et organiser la prospection',
+          'Prospecter une clientèle de particuliers ou de professionnels',
+          'Analyser les résultats de la prospection',
+          "Valoriser l'offre commerciale",
+          "Négocier et défendre l'offre",
+        ]
+      }
+    }
+  },
+  'cap-epc': {
+    label: 'CAP EPC',
+    classes: ['CAP 1ère année', 'CAP 2ème année'],
+    activites: {
+      'reception': {
+        label: 'Réception et contrôle des marchandises',
+        competences: [
+          'Réceptionner les livraisons',
+          'Contrôler la conformité des marchandises',
+          'Étiqueter et conditionner les produits',
+          'Ranger et stocker les marchandises',
+        ]
+      },
+      'rayon': {
+        label: "Mise en rayon et tenue de l'espace commercial",
+        competences: [
+          'Approvisionner les rayons',
+          'Implanter et baliser les produits',
+          "Maintenir la propreté et l'ordre du rayon",
+          'Gérer les dates limites de consommation',
+        ]
+      },
+      'vente': {
+        label: 'Vente et relation client',
+        competences: [
+          'Accueillir et orienter les clients',
+          'Informer et conseiller les clients',
+          'Réaliser les opérations de caisse',
+          'Traiter les réclamations courantes',
+        ]
+      }
+    }
+  }
 };
 
-// Default structure
+// ── Définitions des blocs ─────────────────────────────────────────────────
+const BLOCKS = {
+  theory:      { label: 'Apport théorique',      icon: '📘', cls: 'theory' },
+  application: { label: 'Application pratique',  icon: '🔧', cls: 'application' },
+  synthesis:   { label: 'Synthèse',              icon: '🔄', cls: 'synthesis' },
+  progressive: { label: 'Exercices progressifs', icon: '📈', cls: 'progressive' },
+  casestudy:   { label: 'Étude de cas',          icon: '💡', cls: 'casestudy' },
+  evaluation:  { label: 'Évaluation',            icon: '❓', cls: 'evaluation' },
+};
+
+// Structure par défaut (1h)
 let blocks = [
   { id: uid(), type: 'theory' },
   { id: uid(), type: 'application' },
-  { id: uid(), type: 'theory' },
-  { id: uid(), type: 'application' },
   { id: uid(), type: 'synthesis' },
-  { id: uid(), type: 'progressive' },
 ];
 
 let course     = null;
 let downloadId = null;
 let dragIdx    = null;
-let overIdx    = null;
 
 function uid() { return Math.random().toString(36).slice(2); }
 
-// ── Block list rendering ──────────────────────────────────────────────────
+// ── Blocs : rendu ─────────────────────────────────────────────────────────
 function renderBlocks() {
   const list = document.getElementById('blockList');
   if (!blocks.length) {
@@ -443,14 +475,9 @@ function renderBlocks() {
   list.innerHTML = blocks.map((b, i) => {
     const def = BLOCKS[b.type] || { label: b.type, icon: '▪', cls: b.type };
     return `
-    <div class="block-item"
-      draggable="true"
-      data-idx="${i}"
-      ondragstart="onDragStart(event,${i})"
-      ondragover="onDragOver(event,${i})"
-      ondragleave="onDragLeave(event)"
-      ondrop="onDrop(event,${i})"
-      ondragend="onDragEnd(event)"
+    <div class="block-item" draggable="true" data-idx="${i}"
+      ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})"
+      ondragleave="onDragLeave(event)" ondrop="onDrop(event,${i})" ondragend="onDragEnd(event)"
       id="blk-${b.id}">
       <span class="drag-handle">⠿</span>
       <span class="block-num">${i + 1}</span>
@@ -483,35 +510,95 @@ function onDragOver(e, i) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   if (i === dragIdx) return;
-  overIdx = i;
   document.querySelectorAll('.block-item').forEach((el, j) =>
     el.classList.toggle('drag-over', j === i)
   );
 }
 
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 
 function onDrop(e, i) {
   e.preventDefault();
   if (dragIdx === null || dragIdx === i) return;
   const [moved] = blocks.splice(dragIdx, 1);
   blocks.splice(i, 0, moved);
-  dragIdx = null; overIdx = null;
+  dragIdx = null;
   renderBlocks();
 }
 
 function onDragEnd(e) {
   e.target.classList.remove('dragging');
   document.querySelectorAll('.block-item').forEach(el => el.classList.remove('drag-over'));
-  dragIdx = null; overIdx = null;
+  dragIdx = null;
+}
+
+// ── Durée → blocs par défaut ──────────────────────────────────────────────
+function onDureeChange() {
+  const duree = document.getElementById('duree').value;
+  const defaults = duree === '2h'
+    ? ['theory', 'application', 'theory', 'application', 'synthesis', 'progressive']
+    : ['theory', 'application', 'synthesis'];
+  blocks = defaults.map(type => ({ id: uid(), type }));
+  renderBlocks();
+}
+
+// ── Dropdowns dynamiques ──────────────────────────────────────────────────
+function onDiplomeChange() {
+  const diplome = document.getElementById('diplome').value;
+  const activiteSelect   = document.getElementById('activite');
+  const competenceSelect = document.getElementById('competence');
+  const classeSelect     = document.getElementById('classe');
+
+  activiteSelect.innerHTML   = '<option value="">— Choisir une activité —</option>';
+  competenceSelect.innerHTML = "<option value=\"\">— Choisir d'abord une activité —</option>";
+  classeSelect.innerHTML     = '<option value="">— Choisir —</option>';
+
+  activiteSelect.disabled   = !diplome;
+  competenceSelect.disabled = true;
+  classeSelect.disabled     = !diplome;
+
+  if (!diplome) return;
+
+  const ref = REFERENTIELS[diplome];
+  Object.entries(ref.activites).forEach(([key, act]) => {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = act.label;
+    activiteSelect.appendChild(opt);
+  });
+  ref.classes.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    classeSelect.appendChild(opt);
+  });
+}
+
+function onActiviteChange() {
+  const diplome  = document.getElementById('diplome').value;
+  const activite = document.getElementById('activite').value;
+  const competenceSelect = document.getElementById('competence');
+
+  competenceSelect.innerHTML = '<option value="">— Choisir une compétence —</option>';
+  competenceSelect.disabled = !activite;
+  if (!activite) return;
+
+  (REFERENTIELS[diplome]?.activites?.[activite]?.competences || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    competenceSelect.appendChild(opt);
+  });
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────
 async function generate() {
-  const topic = document.getElementById('topic').value.trim();
-  if (!topic) { showErr('Veuillez saisir un sujet.'); return; }
+  const diplome    = document.getElementById('diplome').value;
+  const activite   = document.getElementById('activite').value;
+  const competence = document.getElementById('competence').value;
+  const classe     = document.getElementById('classe').value;
+
+  if (!diplome)    { showErr('Veuillez choisir un diplôme.'); return; }
+  if (!activite)   { showErr("Veuillez choisir une activité."); return; }
+  if (!competence) { showErr('Veuillez choisir une compétence.'); return; }
+  if (!classe)     { showErr('Veuillez choisir une classe.'); return; }
   if (!blocks.length) { showErr('Ajoutez au moins un bloc dans la structure.'); return; }
 
   setLoading(true);
@@ -522,20 +609,21 @@ async function generate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        topic,
-        level:              val('level'),
-        language:           val('language'),
-        referentiel:        val('referentiel'),
-        customInstructions: document.getElementById('custom').value.trim(),
-        pedagogyStructure:  val('pedagogy'),
+        diplome,
+        activite,
+        competence,
+        classe,
+        duree:              document.getElementById('duree').value,
         blocks:             blocks.map(b => b.type),
+        pedagogyStructure:  document.getElementById('pedagogy').value,
+        customInstructions: document.getElementById('custom').value.trim(),
       })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Erreur serveur');
     course     = d.course;
     downloadId = d.downloadId || null;
-    renderCourse(course, val('level'));
+    renderCourse(course, classe);
   } catch (e) {
     showErr('Erreur : ' + e.message);
   } finally {
@@ -543,13 +631,13 @@ async function generate() {
   }
 }
 
-// ── Rendu du corps d'une section selon son type ───────────────────────────
+// ── Rendu corps section ───────────────────────────────────────────────────
 function renderSectionBody(s) {
   switch (s.type) {
 
     case 'theory':
       return `
-        ${s.content  ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
+        ${s.content    ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
         ${s.definition ? `<div class="def-box">${esc(s.definition)}</div>` : ''}
         ${s.formula    ? `<div class="formula-box">${esc(s.formula)}</div>` : ''}
         ${s.example    ? `<div class="example-box"><strong>Exemple :</strong> ${esc(s.example)}</div>` : ''}
@@ -598,27 +686,23 @@ function renderSectionBody(s) {
     default:
       return `
         ${s.content ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
-        ${(s.keyPoints || []).map(k => `<div class="sec-content">• ${esc(k)}</div>`).join('')}
-        ${s.exercise ? `<div class="ex-box"><h4>Exercice</h4><p>${esc(s.exercise)}</p></div>` : ''}`;
+        ${(s.keyPoints || []).map(k => `<div class="sec-content">• ${esc(k)}</div>`).join('')}`;
   }
 }
 
-// ── Course preview rendering ──────────────────────────────────────────────
-function renderCourse(c, level) {
-  document.getElementById('cTitle').textContent    = c.title;
-  document.getElementById('cDesc').textContent     = c.subtitle || c.description || '';
-  document.getElementById('cDuration').textContent = c.duration ? '⏱ ' + c.duration : '';
-  document.getElementById('cSections').textContent = `📚 ${c.sections.length} sections`;
+// ── Rendu du cours ────────────────────────────────────────────────────────
+function renderCourse(c, classe) {
+  document.getElementById('cTitle').textContent        = c.title;
+  document.getElementById('cDesc').textContent         = c.subtitle || c.description || '';
+  document.getElementById('cDuration').textContent     = c.duration ? '⏱ ' + c.duration : '';
+  document.getElementById('cSectionsCount').textContent = `📚 ${c.sections.length} sections`;
+  document.getElementById('cPill').textContent         = classe;
+  document.getElementById('actInfo').textContent       = `${c.sections.length} sections générées`;
 
-  const lvlMap = { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' };
-  document.getElementById('cLevel').textContent  = lvlMap[level] || level;
-  document.getElementById('actInfo').textContent = `${c.sections.length} sections générées`;
+  document.getElementById('cObjectives').innerHTML =
+    (c.objectives || []).map(o => `<li>${esc(o)}</li>`).join('');
 
-  const ol = document.getElementById('cObjectives');
-  ol.innerHTML = (c.objectives || []).map(o => `<li>${esc(o)}</li>`).join('');
-
-  const sl = document.getElementById('cSections');
-  sl.innerHTML = c.sections.map((s, i) => {
+  document.getElementById('cSectionsList').innerHTML = c.sections.map((s, i) => {
     const def  = BLOCKS[s.type] || { label: s.type || '', icon: '▪', cls: '' };
     const tCls = def.cls;
     return `
@@ -647,31 +731,23 @@ function toggle(i) {
   document.getElementById('ch' + i).classList.toggle('open');
 }
 
-// ── Download — compatible iframe Wix ─────────────────────────────────────
+// ── Téléchargement ────────────────────────────────────────────────────────
 function download() {
-  if (!course) return;
-
-  // Priorité : URL GET avec l'ID temporaire (window.open fonctionne dans les iframes)
-  if (downloadId) {
-    window.open('/api/download/' + downloadId, '_blank');
-    return;
-  }
-
-  // Fallback : lien <a> target="_blank" vers une URL de données POST
-  // (cas où downloadId n'est pas disponible)
-  const a = document.createElement('a');
-  a.href = '/api/download-fallback';
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.click();
+  if (downloadId) window.open('/api/download/' + downloadId, '_blank');
 }
 
 function resetCourse() {
-  course = null;
-  downloadId = null;
+  course = null; downloadId = null;
   document.getElementById('courseCard').classList.add('hidden');
-  document.getElementById('topic').value = '';
-  document.getElementById('topic').focus();
+  document.getElementById('diplome').value = '';
+  document.getElementById('custom').value  = '';
+  onDiplomeChange();
+  blocks = [
+    { id: uid(), type: 'theory' },
+    { id: uid(), type: 'application' },
+    { id: uid(), type: 'synthesis' },
+  ];
+  renderBlocks();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -683,16 +759,11 @@ function setLoading(on) {
 }
 function showErr(m) { const e = document.getElementById('errMsg'); e.textContent = m; e.classList.remove('hidden'); }
 function hideErr()  { document.getElementById('errMsg').classList.add('hidden'); }
-function val(id)    { return document.getElementById(id).value; }
 function esc(s) {
   return String(s ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.id === 'topic') generate();
-});
 
 // Init
 renderBlocks();

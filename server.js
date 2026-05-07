@@ -17,6 +17,101 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Référentiels professionnels ───────────────────────────────────────────
+const REFERENTIELS = {
+  'bac-pro-mdcd': {
+    label: 'Bac Pro Métiers du Commerce et de la Distribution (MDCD)',
+    classes: ['2nde Bac Pro', '1ère Bac Pro', 'Terminale Bac Pro'],
+    activites: {
+      'option-a': {
+        label: "Option A — Gestion des stocks et de l'espace commercial",
+        competences: [
+          'Réceptionner les livraisons',
+          'Contrôler les livraisons',
+          'Contribuer à la gestion des stocks',
+          'Participer aux inventaires',
+          'Mettre en œuvre des actions promotionnelles',
+          "Gérer l'espace commercial au quotidien",
+        ]
+      },
+      'option-b': {
+        label: 'Option B — Prospection et vente à distance',
+        competences: [
+          'Préparer et organiser la prospection',
+          'Prospecter une clientèle de particuliers ou de professionnels',
+          'Analyser les résultats de la prospection',
+          "Valoriser l'offre commerciale",
+          "Négocier et défendre l'offre",
+        ]
+      }
+    }
+  },
+  'cap-epc': {
+    label: 'CAP Équipier Polyvalent du Commerce (EPC)',
+    classes: ['CAP 1ère année', 'CAP 2ème année'],
+    activites: {
+      'reception': {
+        label: 'Réception et contrôle des marchandises',
+        competences: [
+          'Réceptionner les livraisons',
+          'Contrôler la conformité des marchandises',
+          'Étiqueter et conditionner les produits',
+          'Ranger et stocker les marchandises',
+        ]
+      },
+      'rayon': {
+        label: "Mise en rayon et tenue de l'espace commercial",
+        competences: [
+          'Approvisionner les rayons',
+          'Implanter et baliser les produits',
+          "Maintenir la propreté et l'ordre du rayon",
+          'Gérer les dates limites de consommation',
+        ]
+      },
+      'vente': {
+        label: 'Vente et relation client',
+        competences: [
+          'Accueillir et orienter les clients',
+          'Informer et conseiller les clients',
+          'Réaliser les opérations de caisse',
+          'Traiter les réclamations courantes',
+        ]
+      }
+    }
+  }
+};
+
+// ── Mapping compétence → document professionnel recommandé ───────────────
+const COMPETENCE_DOCUMENTS = {
+  // Bac Pro MDCD — Option A
+  'Réceptionner les livraisons':                                    'BON DE LIVRAISON',
+  'Contrôler les livraisons':                                       'BON DE RÉCEPTION',
+  'Contribuer à la gestion des stocks':                             'FICHE DE STOCK',
+  'Participer aux inventaires':                                     "FICHE D'INVENTAIRE",
+  'Mettre en œuvre des actions promotionnelles':                    'BON DE COMMANDE',
+  "Gérer l'espace commercial au quotidien":                         'RELEVÉ DE DÉMARQUE',
+  // Bac Pro MDCD — Option B
+  'Préparer et organiser la prospection':                           'FICHE DÉCOUVERTE CLIENT',
+  'Prospecter une clientèle de particuliers ou de professionnels':  'FICHE DÉCOUVERTE CLIENT',
+  'Analyser les résultats de la prospection':                       'FICHE DÉCOUVERTE CLIENT',
+  "Valoriser l'offre commerciale":                                  'BON DE COMMANDE CLIENT',
+  "Négocier et défendre l'offre":                                   'BON DE COMMANDE CLIENT',
+  // CAP EPC — Réception
+  'Contrôler la conformité des marchandises':                       'BON DE RÉCEPTION',
+  'Étiqueter et conditionner les produits':                         'BON DE RÉCEPTION',
+  'Ranger et stocker les marchandises':                             'FICHE DE STOCK',
+  // CAP EPC — Rayon
+  'Approvisionner les rayons':                                      'BON DE COMMANDE',
+  'Implanter et baliser les produits':                              "FICHE D'INVENTAIRE",
+  "Maintenir la propreté et l'ordre du rayon":                      'RELEVÉ DE DÉMARQUE',
+  'Gérer les dates limites de consommation':                        'RELEVÉ DE DÉMARQUE',
+  // CAP EPC — Vente
+  'Accueillir et orienter les clients':                             'FICHE DÉCOUVERTE CLIENT',
+  'Informer et conseiller les clients':                             'FICHE DÉCOUVERTE CLIENT',
+  'Réaliser les opérations de caisse':                              'FICHE DE CAISSE',
+  'Traiter les réclamations courantes':                             'FICHE DE RÉCLAMATION',
+};
+
 // ── Labels ────────────────────────────────────────────────────────────────
 const BLOCK_LABELS = {
   theory:      'Apport théorique',
@@ -44,8 +139,21 @@ const BLOCK_INSTRUCTIONS = {
 
   application: `APPLICATION PRATIQUE — champs obligatoires :
 - "title"          : "Application [lettre]" (A, B, C…)
-- "restaurantName" : nom d'établissement fictif français (restaurant, hôtel, traiteur, etc.)
-- "context"        : énoncé avec données numériques réalistes (quantités, prix, dates, ratios)
+- "restaurantName" : nom d'entreprise fictive du secteur commercial (supérette, hypermarché, enseigne de distribution, commerce de détail…)
+- "documentType"   : choisir le formulaire professionnel adapté à la compétence (BON DE LIVRAISON pour réceptionner, FICHE D'INVENTAIRE pour inventaire, BON DE COMMANDE pour commander, etc.)
+- "docRows"        : 2 à 4 lignes de données réalistes pré-remplies dans le formulaire, format selon documentType :
+    BON DE COMMANDE   → [["REF","Désignation","Qté","PU HT","TVA%","Total TTC"], ...]
+    BON DE LIVRAISON  → [["REF","Désignation","Qté commandée","Qté livrée","Observations"], ...]
+    BON DE RÉCEPTION  → [["REF","Désignation","Qté attendue","Qté reçue","État","Observations"], ...]
+    FICHE D'INVENTAIRE → [["REF","Désignation","Unité","Stock théo.","Stock réel","Écart","Obs."], ...]
+    FICHE DE STOCK    → [["Date","N° doc","Désignation","Entrées","Sorties","Stock"], ...]
+    RELEVÉ DE DÉMARQUE     → [["REF","Désignation","DLC/DLUO","Qté","PU","Montant","Cause"], ...]
+    FICHE DE CAISSE        → [["Heure","N° ticket","Libellé","Mode paiement","Montant","Rendu monnaie"], ...]
+    BON DE COMMANDE CLIENT → [["REF","Désignation","Qté","PU TTC","Remise %","Total TTC"], ...]
+    FICHE DÉCOUVERTE CLIENT / FICHE CLÔTURE CAISSE / FICHE DE RÉCLAMATION → null (formulaire auto-généré)
+- "context"        : scénario professionnel décrivant la situation (entreprise, date, acteurs). NE PAS répéter la consigne. Données chiffrées utiles à la compréhension.
+    CAP EPC → situations simples, vocabulaire de base, données peu nombreuses
+    Bac Pro MDCD → situations complexes, données multiples, analyse professionnelle attendue
 - "questions"      : 3 objets {q, answer} en progression compréhension → calcul → analyse/conclusion
     Chaque "answer" commence par "Réponse : " et montre le calcul complet étape par étape
 - Tous les autres champs : null`,
@@ -62,10 +170,14 @@ const BLOCK_INSTRUCTIONS = {
 - "exercises" : [{number, restaurantName, context, questions:[{q,answer}], tables}]
     • Exercice 1 : application directe d'un concept (3–4 questions, calculs simples)
     • Exercice 2 : cas intégrant plusieurs concepts + jugement professionnel (4–5 questions)
-    Chaque exercice doit avoir un établissement fictif français différent.
-    "tables" dans l'exercice : inclure si l'énoncé comporte un inventaire, un tableau de stock, un bilan, etc.
-    Format tables : [{"caption":"...","headers":[...],"rows":[[...]]}] ou null
-    Chaque "answer" commence par "Réponse : " avec calcul complet.
+    Chaque exercice doit avoir un établissement fictif différent.
+    Pour chaque exercice, renseigner "documentType" et "docRows" selon le même format que pour APPLICATION :
+      "documentType" : formulaire adapté à l'exercice
+      "docRows"      : 2 à 4 lignes pré-remplies (colonnes selon documentType) ou null pour FICHE DÉCOUVERTE CLIENT / FICHE CLÔTURE CAISSE / FICHE DE RÉCLAMATION
+    "context" : scénario (sans répéter la consigne). NE PAS mettre "Complétez le document..."
+    CAP EPC → questions très guidées, calculs simples, vocabulaire accessible
+    Bac Pro MDCD → questions plus complexes, données multiples, raisonnement professionnel attendu
+    Chaque "answer" commence par "Réponse : " avec calcul complet étape par étape.
 - Tous les autres champs : null`,
 
   casestudy: `ÉTUDE DE CAS — champs obligatoires :
@@ -83,6 +195,7 @@ const BLOCK_INSTRUCTIONS = {
 const JSON_SCHEMA = `{
   "title": "Titre du cours",
   "subtitle": "Thèmes abordés séparés par ·",
+  "companyName": "Nom de l'entreprise fictive utilisée dans TOUT le cours (cohérente avec l'activité : supermarché/hypermarché pour CAP EPC, enseigne de distribution pour Bac Pro MDCD)",
   "objectives": ["objectif 1", "objectif 2", "objectif 3"],
   "sections": [
     {
@@ -94,11 +207,13 @@ const JSON_SCHEMA = `{
       "tables": [{"caption":"Titre optionnel","headers":["Col1","Col2"],"rows":[["v1","v2"]]}],
       "example": "Exemple chiffré étape par étape ou null",
       "toRetain": "★ À RETENIR — phrase clé ou null",
-      "restaurantName": "Nom établissement ou null",
-      "context": "Énoncé avec données numériques ou null",
+      "restaurantName": "Même que companyName ou null",
+      "documentType": "BON DE COMMANDE | BON DE LIVRAISON | BON DE RÉCEPTION | FICHE D'INVENTAIRE | FICHE DE STOCK | RELEVÉ DE DÉMARQUE | FICHE DE CAISSE | BON DE COMMANDE CLIENT | FICHE DÉCOUVERTE CLIENT | FICHE CLÔTURE CAISSE | FICHE DE RÉCLAMATION (null pour theory/synthesis)",
+      "docRows": [["col1","col2","col3"]],
+      "context": "Scénario professionnel avec contexte chiffré (sans répéter la consigne) ou null",
       "questions": [{"q":"Question ?","answer":"Réponse : calcul complet..."}],
       "points": [{"number":1,"title":"Concept","content":"Résumé","formula":"Formule ou null"}],
-      "exercises": [{"number":1,"restaurantName":"Nom","context":"Énoncé","tables":[{"caption":"","headers":[],"rows":[[]]}],"questions":[{"q":"...","answer":"Réponse : ..."}]}]
+      "exercises": [{"number":1,"restaurantName":"Même que companyName","documentType":"Type du formulaire","docRows":[["col1","col2"]],"context":"Scénario ou null","tables":null,"questions":[{"q":"...","answer":"Réponse : ..."}]}]
     }
   ]
 }`;
@@ -140,55 +255,86 @@ function extractJson(raw) {
 
 // ── Génération ────────────────────────────────────────────────────────────
 app.post('/api/generate', async (req, res) => {
-  const { topic, level, blocks, language, referentiel, customInstructions, pedagogyStructure } = req.body;
-  if (!topic)          return res.status(400).json({ error: 'Le sujet est requis.' });
-  if (!blocks?.length) return res.status(400).json({ error: 'La structure du cours est vide.' });
+  const { diplome, activite, competence, classe, duree, pedagogyStructure, customInstructions } = req.body;
 
-  const lang       = language === 'en' ? 'English' : 'French';
-  const levelLabel = { beginner: 'beginner', intermediate: 'intermediate', advanced: 'advanced' }[level] || 'intermediate';
+  if (!diplome)    return res.status(400).json({ error: 'Le diplôme est requis.' });
+  if (!activite)   return res.status(400).json({ error: "L'activité est requise." });
+  if (!competence) return res.status(400).json({ error: 'La compétence est requise.' });
+  if (!classe)     return res.status(400).json({ error: 'La classe est requise.' });
+
+  // Blocs : priorité au tableau envoyé par le frontend, sinon déduit de la durée
+  const blocks = Array.isArray(req.body.blocks) && req.body.blocks.length
+    ? req.body.blocks
+    : duree === '2h'
+      ? ['theory', 'application', 'theory', 'application', 'synthesis', 'progressive']
+      : ['theory', 'application', 'synthesis'];
+
+  const refData      = REFERENTIELS[diplome] || {};
+  const activiteData = refData.activites?.[activite] || {};
+  const diplomeLabel = refData.label || diplome;
+  const activiteLabel = activiteData.label || activite;
+
   const isInductive = pedagogyStructure === 'inductive';
 
-  // Instructions d'adaptation niveau
-  const levelGuidance = {
-    beginner:     'Vocabulaire simple, analogies du quotidien, pas de prérequis supposés. Explications très progressives.',
-    intermediate: 'Vocabulaire professionnel introduit et défini. Exemples ancrés dans la pratique du secteur.',
-    advanced:     'Vocabulaire technique assumé. Cas complexes, nuances, comparaisons de méthodes.'
-  }[level] || '';
+  const classeLevel = {
+    '2nde Bac Pro':    'beginner',
+    '1ère Bac Pro':    'intermediate',
+    'Terminale Bac Pro': 'advanced',
+    'CAP 1ère année':  'beginner',
+    'CAP 2ème année':  'intermediate',
+  }[classe] || 'intermediate';
 
-  // Structure pédagogique
+  const levelGuidance = {
+    beginner:     'Vocabulaire simple, définitions explicites, analogies du quotidien. Explications très progressives, aucun prérequis supposé.',
+    intermediate: 'Vocabulaire professionnel introduit et défini. Exemples ancrés dans la réalité du secteur commercial et de la distribution.',
+    advanced:     'Vocabulaire technique assumé. Cas complexes, nuances réglementaires, comparaisons de méthodes et de supports professionnels.',
+  }[classeLevel];
+
   const pedagogyGuidance = isInductive
-    ? `STRUCTURE INDUCTIVE : pour chaque apport théorique, commence par une situation professionnelle concrète
-       ou une question de mise en réflexion ("Vous observez que…", "Comment expliquer que…"),
-       fais analyser / observer, puis dégage la règle, la définition ou la formule en conclusion.`
-    : `STRUCTURE DÉDUCTIVE : pour chaque apport théorique, énonce d'abord la règle / définition / formule,
-       puis illustre immédiatement avec un exemple numérique concret situé dans un établissement fictif.`;
+    ? `STRUCTURE INDUCTIVE : pour chaque apport théorique, commence par une situation professionnelle concrète en commerce/distribution
+("Vous observez que…", "Ce matin, à la réception d'une livraison, vous constatez…"),
+fais analyser et observer, puis dégage la règle, la définition ou la procédure en conclusion.`
+    : `STRUCTURE DÉDUCTIVE : pour chaque apport théorique, énonce d'abord la règle/définition/procédure officielle,
+puis illustre immédiatement avec un exemple numérique concret situé dans un commerce ou une grande surface fictive.`;
 
   const sectionsList = blocks.map((type, i) =>
     `Section ${i + 1} [${BLOCK_LABELS[type] || type}] :\n${BLOCK_INSTRUCTIONS[type] || type}`
   ).join('\n\n');
 
-  const prompt = `Tu es un formateur expert en pédagogie professionnelle. Génère un cours complet en ${lang} sur le sujet : "${topic}".
+  const prompt = `Tu es un formateur expert en enseignement professionnel pour les diplômes du commerce et de la distribution.
 
-CADRE PÉDAGOGIQUE :
-• Niveau des apprenants : ${levelLabel} — ${levelGuidance}
-• Approche : ${isInductive ? 'INDUCTIVE (partir de l\'observation vers la règle)' : 'DÉDUCTIVE (partir de la règle vers l\'application)'}
-${referentiel ? `• Référentiel / cadre scolaire : ${referentiel}` : ''}
+CONTEXTE DE LA FORMATION :
+• Diplôme : ${diplomeLabel}
+• Activité du référentiel officiel : ${activiteLabel}
+• Compétence visée : ${competence}
+• Classe : ${classe}
+• Durée de la séance : ${duree || '1h'}
+• Approche pédagogique : ${isInductive ? "INDUCTIVE (partir de l'observation vers la règle)" : "DÉDUCTIVE (partir de la règle vers l'application)"}
+
+ADAPTATION AU NIVEAU — ${classe} :
+${levelGuidance}
 
 ${pedagogyGuidance}
 
+SUJET DU COURS : "${competence}"
+dans le cadre de l'activité "${activiteLabel}" — ${diplomeLabel}
+
 STYLE OBLIGATOIRE (reproduire le style des cours professionnels français) :
-• Établissements fictifs français dans TOUS les exemples et applications (restaurant, hôtel, traiteur, brasserie…)
+• Choisir UNE SEULE entreprise fictive cohérente (ex. "Supermarché VALDIS" pour CAP EPC, "MDIS Distribution" pour Bac Pro MDCD) et l'utiliser dans TOUT le cours — placer ce nom dans "companyName" et dans chaque "restaurantName"
+• Pour chaque application et exercice, utiliser le formulaire professionnel adapté à la compétence et le placer dans "documentType". Pour la compétence "${competence}", le document recommandé est "${COMPETENCE_DOCUMENTS[competence] || 'le formulaire le plus adapté'}"
+• Établissements fictifs français dans TOUS les exemples : magasins, supermarchés, hypermarchés, commerces de détail, entrepôts logistiques, entreprises de distribution
 • Calculs TOUJOURS détaillés étape par étape : "320 × 0,250 kg = 80 kg → 80 × 18 € = 1 440 €"
 • Définitions isolées sur leur ligne : "Terme : définition complète."
 • Formules isolées sur leur ligne : "Résultat = A + B − C"
-• Tableaux obligatoires dès que le contenu comporte des données comparatives
+• Tableaux obligatoires dès que le contenu comporte des données comparatives (documents commerciaux, procédures, grilles de contrôle…)
 • ★ À RETENIR en fin de chaque apport théorique : une seule phrase essentielle
 • Réponses des applications : "Réponse : calcul complet" en italique
-• Ton professionnel, rigoureux, adapté au niveau
+• Vocabulaire et situations professionnelles du commerce et de la distribution
+• Ton professionnel, rigoureux, conforme aux exigences du référentiel
+${customInstructions ? `\nCONSIGNES DE L'ENSEIGNANT (prioritaires) :\n${customInstructions}` : ''}
 
 STRUCTURE DU COURS (${blocks.length} sections — respecte l'ordre et le contenu de chaque section) :
 ${sectionsList}
-${customInstructions ? `\nCONSIGNES DE L'ENSEIGNANT (prioritaires) :\n${customInstructions}` : ''}
 
 Réponds UNIQUEMENT avec un objet JSON valide (aucun markdown, aucune balise code) :
 ${JSON_SCHEMA}`;
@@ -310,6 +456,457 @@ function makeTable(headers, rows) {
   });
 }
 
+// ── En-tête de formulaire professionnel (fond gris D9D9D9, Calibri 10pt) ─
+function makeFormHeader(companyName, documentType) {
+  const gb = 'D9D9D9';
+  const bd = () => ({ style: BorderStyle.SINGLE, size: 4, color: '999999' });
+  const borders = { top: bd(), bottom: bd(), left: bd(), right: bd() };
+  const mar = { left: 80, right: 80 };
+
+  return new Table({
+    rows: [new TableRow({ children: [
+      new TableCell({
+        children: [
+          new Paragraph({ children: [run(companyName || '..........', { bold: true, size: 20, font: 'Calibri' })], spacing: { before: 40, after: 20 } }),
+          new Paragraph({ children: [run('Adresse : ..........', { size: 18, font: 'Calibri', color: '6B7280' })], spacing: { before: 0, after: 40 } }),
+        ],
+        shading: { type: ShadingType.CLEAR, fill: gb }, borders, margins: mar,
+        width: { size: 40, type: WidthType.PERCENTAGE }
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [run(documentType || 'DOCUMENT', { bold: true, size: 24, font: 'Calibri', allCaps: true })], alignment: AlignmentType.CENTER, spacing: { before: 60, after: 60 } })],
+        shading: { type: ShadingType.CLEAR, fill: gb }, borders, margins: mar,
+        width: { size: 35, type: WidthType.PERCENTAGE }
+      }),
+      new TableCell({
+        children: [
+          new Paragraph({ children: [run('Réf : ..........', { size: 18, font: 'Calibri' })], spacing: { before: 20, after: 10 } }),
+          new Paragraph({ children: [run('N° : ..........', { size: 18, font: 'Calibri' })], spacing: { before: 0, after: 10 } }),
+          new Paragraph({ children: [run('Date : ..........', { size: 18, font: 'Calibri' })], spacing: { before: 0, after: 20 } }),
+        ],
+        shading: { type: ShadingType.CLEAR, fill: gb }, borders, margins: mar,
+        width: { size: 25, type: WidthType.PERCENTAGE }
+      }),
+    ]})],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+// ── Pied de formulaire professionnel ─────────────────────────────────────
+function makeFormFooter() {
+  const bd = () => ({ style: BorderStyle.SINGLE, size: 4, color: '999999' });
+  const borders = { top: bd(), bottom: bd(), left: bd(), right: bd() };
+  const mar = { left: 80, right: 80 };
+  const cell = (lines) => new TableCell({
+    children: lines.map(l => new Paragraph({ children: [run(l, { size: 18, font: 'Calibri' })], spacing: { before: 28, after: 28 } })),
+    borders, margins: mar, width: { size: 50, type: WidthType.PERCENTAGE }
+  });
+  return new Table({
+    rows: [new TableRow({ children: [
+      cell(['Émis par : ..........', 'Date : ..........', 'Service : ..........']),
+      cell(['Vérifié par : ..........', 'Signature : ..........', 'Tampon entreprise :']),
+    ]})],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+// ── Templates de documents professionnels ────────────────────────────────
+const docR = (txt, opts = {}) =>
+  new TextRun({ text: String(txt ?? ''), size: 20, font: 'Calibri', ...opts });
+const docP = (content, pOpts = {}) =>
+  new Paragraph({
+    children: typeof content === 'string' ? [docR(content)]
+              : Array.isArray(content) ? content : [content],
+    spacing: { before: 36, after: 36 }, ...pOpts,
+  });
+const fb    = () => ({ style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' });
+const fbAll = () => { const b = fb(); return { top:b, bottom:b, left:b, right:b }; };
+const fCell = (children, wPct, fill, span) => new TableCell({
+  children: Array.isArray(children) ? children : [children],
+  borders: fbAll(), margins: { left: 80, right: 80 },
+  ...(wPct ? { width: { size: wPct, type: WidthType.PERCENTAGE } } : {}),
+  ...(fill ? { shading: { type: ShadingType.CLEAR, fill } } : {}),
+  ...(span ? { columnSpan: span } : {}),
+});
+
+function templateHeader(company, title) {
+  return new Table({
+    rows: [new TableRow({ children: [
+      fCell([
+        docP([docR(company || 'ENTREPRISE', { bold: true, size: 24 })]),
+        docP([docR('Adresse : …………………………………………')]),
+        docP([docR('Tél : ………………………  Email : ……………………')]),
+        docP([docR('SIRET : …………………………………………………')]),
+      ], 55, 'D9D9D9'),
+      fCell([
+        docP([docR(title || 'DOCUMENT', { bold: true, size: 28, allCaps: true })], { alignment: AlignmentType.CENTER }),
+        docP([docR('N° : ___________')], { alignment: AlignmentType.RIGHT }),
+        docP([docR('Date : _________')], { alignment: AlignmentType.RIGHT }),
+        docP([docR('Réf : __________')], { alignment: AlignmentType.RIGHT }),
+      ], 45, 'D9D9D9'),
+    ]})],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+function templateFooter() {
+  const col = (lbl) => fCell([
+    docP([docR(lbl, { bold: true })]),
+    docP(''),
+    docP([docR('Date :      _______________')]),
+    docP([docR('Signature : _______________')]),
+  ], 34);
+  return new Table({
+    rows: [new TableRow({ children: [col('Établi par :'), col('Vérifié par :'), col('Approuvé par :')] })],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+function docDataTable(cols, dataRows, totalEmpty) {
+  const filled = (dataRows || []).filter(r => r?.length);
+  const empty  = Math.max(0, (totalEmpty || 5) - filled.length);
+  const hdr = new TableRow({ tableHeader: true, children: cols.map(c =>
+    fCell([docP([docR(c.label, { bold: true })], { alignment: AlignmentType.CENTER })], c.w, 'D9D9D9')
+  )});
+  return new Table({
+    rows: [
+      hdr,
+      ...filled.map(row => new TableRow({ children: cols.map((c, ci) => fCell([docP([docR(row[ci] ?? '')])], c.w)) })),
+      ...Array.from({ length: empty }, () => new TableRow({
+        height: { value: 340, rule: 'atLeast' },
+        children: cols.map(c => fCell([docP('')], c.w))
+      })),
+    ],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+function totalsTable(lines) {
+  return new Table({
+    rows: lines.map(([lbl, val]) => new TableRow({ children: [
+      fCell([docP([docR(lbl, { bold: true })], { alignment: AlignmentType.RIGHT })], 75, 'F3F4F6'),
+      fCell([docP([docR(val || '')])], 25),
+    ]})),
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+function infoRow(left, right) {
+  return new Table({
+    rows: [new TableRow({ children: [
+      fCell(left.map(l => docP([docR(l)])), 50),
+      fCell(right.map(r => docP([docR(r)])), 50),
+    ]})],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+}
+
+function buildBonCommande(company, rows) {
+  return [
+    templateHeader(company, 'BON DE COMMANDE'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Fournisseur : ………………………………………………', 'Adresse : …………………………………………………', 'Contact : ……………………………………………………'],
+      ['Livraison prévue : __________________', 'Modalités paiement : _______________', 'Conditions : _______________________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:9 }, { label:'Désignation', w:33 }, { label:'Qté', w:9 },
+      { label:'PU HT', w:16 }, { label:'TVA %', w:12 }, { label:'Total TTC', w:21 }
+    ], rows, 6),
+    new Paragraph({ spacing: { before: 40 } }),
+    totalsTable([['Total HT :', ''], ['TVA :', ''], ['Total TTC :', '']]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildBonLivraison(company, rows) {
+  return [
+    templateHeader(company, 'BON DE LIVRAISON'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Expéditeur : …………………………………………………', 'Transporteur : ………………………………………'],
+      ['Destinataire : ………………………………………………', 'Heure livraison : __:__']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:10 }, { label:'Désignation', w:32 },
+      { label:'Qté commandée', w:18 }, { label:'Qté livrée', w:18 }, { label:'Observations', w:22 }
+    ], rows, 7),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildBonReception(company, rows) {
+  return [
+    templateHeader(company, 'BON DE RÉCEPTION'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Fournisseur : …………………………………………………', 'N° BL fournisseur : _______________'],
+      ['Date réception : ___________________', 'Réceptionnaire : __________________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:9 }, { label:'Désignation', w:30 }, { label:'Qté attendue', w:14 },
+      { label:'Qté reçue', w:14 }, { label:'État (C/NC)', w:13 }, { label:'Observations', w:20 }
+    ], rows, 6),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheInventaire(company, rows) {
+  return [
+    templateHeader(company, "FICHE D'INVENTAIRE"),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Date inventaire : ___________________', 'Rayon / Zone : _____________________'],
+      ['Responsable : ______________________', 'Méthode :  □ Comptage   □ Scan code-barres']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:9 }, { label:'Désignation', w:28 }, { label:'Unité', w:8 },
+      { label:'Stock théo.', w:14 }, { label:'Stock réel', w:14 }, { label:'Écart', w:13 }, { label:'Observations', w:14 }
+    ], rows, 7),
+    new Paragraph({ spacing: { before: 40 } }),
+    totalsTable([['Valeur totale du stock :', ''], ['Écart de valeur (€) :', ''], ['Observations générales :', '']]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheStock(company, rows) {
+  return [
+    templateHeader(company, 'FICHE DE STOCK'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Produit : ………………………………………………………', 'Référence : ________________________'],
+      ['Unité de mesure : __________________', 'Stock minimum : ____________________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Date', w:13 }, { label:'N° doc', w:11 }, { label:'Désignation', w:30 },
+      { label:'Entrées', w:15 }, { label:'Sorties', w:15 }, { label:'Stock', w:16 }
+    ], rows, 8),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheClôtureCaisse(company) {
+  const coupures = ['50 €','20 €','10 €','5 €','2 €','1 €','0,50 €','0,20 €','0,10 €','0,05 €'];
+  const sectionA = new Table({
+    rows: [
+      new TableRow({ children: [new TableCell({
+        children: [docP([docR('FOND DE CAISSE — DÉTAIL COUPURES', { bold: true })], { alignment: AlignmentType.CENTER })],
+        columnSpan: 3, borders: fbAll(), margins: { left: 80, right: 80 }, shading: { type: ShadingType.CLEAR, fill: 'D9D9D9' }
+      })]}),
+      new TableRow({ tableHeader: true, children: [
+        fCell([docP([docR('Coupure', { bold: true })],          { alignment: AlignmentType.CENTER })], 34, 'D9D9D9'),
+        fCell([docP([docR('Nb billets / pièces', { bold: true })], { alignment: AlignmentType.CENTER })], 33, 'D9D9D9'),
+        fCell([docP([docR('Montant (€)', { bold: true })],      { alignment: AlignmentType.CENTER })], 33, 'D9D9D9'),
+      ]}),
+      ...coupures.map(c => new TableRow({
+        height: { value: 300, rule: 'atLeast' },
+        children: [fCell([docP(c)], 34), fCell([docP('')], 33), fCell([docP('')], 33)]
+      })),
+      new TableRow({ children: [
+        new TableCell({
+          children: [docP([docR('TOTAL FOND DE CAISSE', { bold: true })], { alignment: AlignmentType.RIGHT })],
+          columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }, shading: { type: ShadingType.CLEAR, fill: 'F3F4F6' }
+        }),
+        fCell([docP('')], 33),
+      ]}),
+    ],
+    width: { size: 100, type: WidthType.PERCENTAGE }
+  });
+  return [
+    templateHeader(company, 'FICHE CLÔTURE CAISSE'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Caisse N° : ________________________', 'Date : ____________________________'],
+      ['Heure ouverture : __________________', 'Heure clôture : ___________________']
+    ),
+    new Paragraph({ spacing: { before: 80 } }),
+    sectionA,
+    new Paragraph({ spacing: { before: 80 } }),
+    totalsTable([
+      ['Total espèces collectées :', ''], ['Total CB :', ''],
+      ['Total chèques :', ''], ['Total tickets restaurant :', ''],
+      ['TOTAL GÉNÉRAL :', ''], ['Montant théorique :', ''], ['ÉCART :', ''],
+    ]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheReclamation(company) {
+  const r2 = (l, r) => new TableRow({ children: [
+    fCell([docP([docR(l, { bold: true })]), new Paragraph({ spacing: { before: 100, after: 100 } })], 50),
+    fCell([docP([docR(r, { bold: true })]), new Paragraph({ spacing: { before: 100, after: 100 } })], 50),
+  ]});
+  const r1 = (l) => new TableRow({ children: [new TableCell({
+    children: [docP([docR(l, { bold: true })]), new Paragraph({ spacing: { before: 120, after: 120 } })],
+    columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }
+  })]});
+  return [
+    templateHeader(company, 'FICHE DE RÉCLAMATION'),
+    new Paragraph({ spacing: { before: 60 } }),
+    new Table({
+      rows: [
+        r2('Date :', 'N° réclamation :'),
+        r2('Client :', 'Contact / Tél :'),
+        r2('Nature :  □ Produit   □ Service   □ Livraison   □ Facturation', 'Urgence :  □ Haute   □ Moyenne   □ Faible'),
+        r1('Produit / Service concerné :'),
+        r1('Description du problème :'),
+        r1('Action demandée par le client :'),
+        r1('Suite donnée / Traitement :'),
+        r2('Délai de résolution :', 'Statut :  □ Ouvert   □ En cours   □ Clôturé'),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    }),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildRelevéDémarque(company, rows) {
+  return [
+    templateHeader(company, 'RELEVÉ DE DÉMARQUE'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Date : _________________________', 'Rayon / Zone : _________________'],
+      ['Responsable : __________________', 'Visa responsable : _____________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:9 }, { label:'Désignation', w:27 }, { label:'DLC/DLUO', w:12 },
+      { label:'Qté', w:8 }, { label:'PU (€)', w:10 }, { label:'Montant (€)', w:12 },
+      { label:'Cause  □ Périmé  □ Casse  □ Vol  □ Autre', w:22 }
+    ], rows, 7),
+    new Paragraph({ spacing: { before: 40 } }),
+    totalsTable([['Valeur totale démarque (€) :', ''], ['Observations :', '']]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheCaisse(company, rows) {
+  return [
+    templateHeader(company, 'FICHE DE CAISSE'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Caisse N° : ____________________', 'Date : ____________________________'],
+      ["Heure d'ouverture : ____________", 'Heure de clôture : ________________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Heure', w:12 }, { label:'N° ticket', w:12 }, { label:'Libellé', w:30 },
+      { label:'Mode paiement', w:18 }, { label:'Montant (€)', w:14 }, { label:'Rendu monnaie', w:14 }
+    ], rows, 8),
+    new Paragraph({ spacing: { before: 40 } }),
+    totalsTable([
+      ['Total transactions :', ''], ['Montant théorique :', ''],
+      ['Montant compté :', ''], ['ÉCART :', '']
+    ]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildBonCommandeClient(company, rows) {
+  return [
+    templateHeader(company, 'BON DE COMMANDE CLIENT'),
+    new Paragraph({ spacing: { before: 60 } }),
+    infoRow(
+      ['Client : ……………………………………………………………', 'Adresse : …………………………………………………', 'Contact / Tél : ……………………………………'],
+      ['Date commande : ___________________', 'Livraison souhaitée : ______________', 'Vendeur : _________________________']
+    ),
+    new Paragraph({ spacing: { before: 60 } }),
+    docDataTable([
+      { label:'Réf', w:9 }, { label:'Désignation', w:31 }, { label:'Qté', w:9 },
+      { label:'PU TTC (€)', w:15 }, { label:'Remise %', w:12 }, { label:'Total TTC (€)', w:24 }
+    ], rows, 6),
+    new Paragraph({ spacing: { before: 40 } }),
+    totalsTable([['Sous-total HT :', ''], ['TVA :', ''], ['Total TTC :', ''], ['Remise accordée :', '']]),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildFicheDecouverteClient(company) {
+  const r2 = (l, r) => new TableRow({ children: [
+    fCell([docP([docR(l, { bold: true })]), new Paragraph({ spacing: { before: 100, after: 100 } })], 50),
+    fCell([docP([docR(r, { bold: true })]), new Paragraph({ spacing: { before: 100, after: 100 } })], 50),
+  ]});
+  const r1 = (l) => new TableRow({ children: [new TableCell({
+    children: [docP([docR(l, { bold: true })]), new Paragraph({ spacing: { before: 120, after: 120 } })],
+    columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }
+  })]});
+  return [
+    templateHeader(company, 'FICHE DÉCOUVERTE CLIENT'),
+    new Paragraph({ spacing: { before: 60 } }),
+    new Table({
+      rows: [
+        new TableRow({ children: [new TableCell({
+          children: [docP([docR('IDENTIFICATION DU PROSPECT', { bold: true })], { alignment: AlignmentType.CENTER })],
+          columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }, shading: { type: ShadingType.CLEAR, fill: 'D9D9D9' }
+        })]}),
+        r2('Nom / Prénom :', 'Société / Raison sociale :'),
+        r2('Téléphone :', 'Email :'),
+        r2('Adresse :', "Secteur d'activité :"),
+        new TableRow({ children: [new TableCell({
+          children: [docP([docR('BESOINS ET PROJET', { bold: true })], { alignment: AlignmentType.CENTER })],
+          columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }, shading: { type: ShadingType.CLEAR, fill: 'D9D9D9' }
+        })]}),
+        r1('Description du besoin / projet :'),
+        r2('Délai souhaité :', 'Budget estimé (€) :'),
+        r1('Produits / Services présentés :'),
+        r1('Objections et réponses apportées :'),
+        new TableRow({ children: [new TableCell({
+          children: [docP([docR('DÉCISION ET SUITES', { bold: true })], { alignment: AlignmentType.CENTER })],
+          columnSpan: 2, borders: fbAll(), margins: { left: 80, right: 80 }, shading: { type: ShadingType.CLEAR, fill: 'D9D9D9' }
+        })]}),
+        r2('Décisionnaire (Nom / Fonction) :', 'Maturité :  □ Chaud   □ Tiède   □ Froid'),
+        r2('Date de relance :', 'Statut :  □ Devis à envoyer   □ En négociation   □ Converti   □ Perdu'),
+        r1('Commentaires / Observations :'),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    }),
+    new Paragraph({ spacing: { before: 80 } }),
+    templateFooter(),
+    new Paragraph({ spacing: { after: 100 } }),
+  ];
+}
+
+function buildDocumentTemplate(documentType, company, rows) {
+  const t = (documentType || '').toUpperCase();
+  if (t.includes('DÉCOUVERTE') || t.includes('DECOUVERTE'))                 return buildFicheDecouverteClient(company);
+  if (t.includes('COMMANDE CLIENT'))                                        return buildBonCommandeClient(company, rows);
+  if (t.includes('COMMANDE'))                                               return buildBonCommande(company, rows);
+  if (t.includes('LIVRAISON'))                                              return buildBonLivraison(company, rows);
+  if (t.includes('RÉCEPTION') || t.includes('RECEPTION'))                  return buildBonReception(company, rows);
+  if (t.includes('INVENTAIRE'))                                             return buildFicheInventaire(company, rows);
+  if (t.includes('DÉMARQUE') || t.includes('DEMARQUE'))                    return buildRelevéDémarque(company, rows);
+  if (t.includes('CLÔTURE') || t.includes('CLOTURE'))                      return buildFicheClôtureCaisse(company);
+  if (t.includes('CAISSE'))                                                 return buildFicheCaisse(company, rows);
+  if (t.includes('STOCK'))                                                  return buildFicheStock(company, rows);
+  if (t.includes('RÉCLAMATION') || t.includes('RECLAMATION'))              return buildFicheReclamation(company);
+  return [templateHeader(company, documentType || 'DOCUMENT'), new Paragraph({ spacing: { before: 100, after: 200 } }), templateFooter(), new Paragraph({ spacing: { after: 100 } })];
+}
+
 // ── Fonction de génération du buffer docx ────────────────────────────────
 async function buildDocx(course) {
 
@@ -427,18 +1024,25 @@ async function buildDocx(course) {
             }));
           }
 
+          // Consigne
+          children.push(body(
+            run('Complétez le document suivant à partir des informations ci-dessous :', { bold: true, color: '1D4ED8' }),
+            { spacing: { before: 80, after: 80 } }
+          ));
+          // Scénario
           if (sec.context) {
-            children.push(callout(
-              [run(sec.context, { italics: true, color: '374151' })],
-              'F9FAFB', 'D1D5DB'
-            ));
+            children.push(callout([run(sec.context, { italics: true, color: '374151' })], 'F9FAFB', 'D1D5DB'));
+            children.push(new Paragraph({ spacing: { before: 80 } }));
           }
+          // Template de document professionnel
+          buildDocumentTemplate(sec.documentType, course.companyName || sec.restaurantName, sec.docRows)
+            .forEach(el => children.push(el));
 
           (sec.questions || []).forEach((qa, qi) => {
             children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
               { spacing: { before: 120, after: 40 } }));
             if (qa.answer) {
-              children.push(body(run(qa.answer, { italics: true, color: '065F46' }),
+              children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                 { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
             }
           });
@@ -495,28 +1099,25 @@ async function buildDocx(course) {
               spacing: { before: 240, after: 80 }
             }));
 
+            // Consigne
+            children.push(body(
+              run('Complétez le document suivant à partir des informations ci-dessous :', { bold: true, color: '1D4ED8' }),
+              { spacing: { before: 80, after: 80 } }
+            ));
+            // Scénario
             if (ex.context) {
-              children.push(callout(
-                [run(ex.context, { italics: true, color: '374151' })],
-                'F9FAFB', 'D1D5DB'
-              ));
+              children.push(callout([run(ex.context, { italics: true, color: '374151' })], 'F9FAFB', 'D1D5DB'));
+              children.push(new Paragraph({ spacing: { before: 80 } }));
             }
-
-            // Tableau dans l'exercice (inventaire, bilan, etc.)
-            if (ex.tables?.length) {
-              ex.tables.forEach(t => {
-                if (t.caption) children.push(body(run(t.caption, { italics: true, color: '6B7280', size: 20 })));
-                children.push(new Paragraph({ spacing: { before: 60 } }));
-                children.push(makeTable(t.headers, t.rows));
-                children.push(new Paragraph({ spacing: { after: 80 } }));
-              });
-            }
+            // Template de document professionnel
+            buildDocumentTemplate(ex.documentType, course.companyName || ex.restaurantName, ex.docRows)
+              .forEach(el => children.push(el));
 
             (ex.questions || []).forEach((qa, qi) => {
               children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
                 { spacing: { before: 120, after: 40 } }));
               if (qa.answer) {
-                children.push(body(run(qa.answer, { italics: true, color: '065F46' }),
+                children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                   { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
               }
             });
@@ -535,7 +1136,7 @@ async function buildDocx(course) {
             children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
               { spacing: { before: 120, after: 40 } }));
             if (qa.answer) {
-              children.push(body(run(qa.answer, { italics: true, color: '065F46' }),
+              children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                 { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
             }
           });
