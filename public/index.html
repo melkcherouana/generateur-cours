@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Générateur de Cours IA</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f0f5;
+      color: #1d1d1f;
+      padding: 28px 16px 60px;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 28px; }
+    .badge {
+      display: inline-block; margin-bottom: 10px;
+      padding: 4px 12px; background: #ede9fe; color: #5b4fcf;
+      border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+    .header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; }
+    .header p  { margin-top: 5px; color: #6e6e73; font-size: .88rem; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 22px 22px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.04);
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: #aeaeb2; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::after {
+      content: ''; flex: 1; height: 1px; background: #f0f0f5;
+    }
+
+    /* ── Form grid ── */
+    .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1/-1; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    label  { font-size: .78rem; font-weight: 600; color: #3a3a3c; }
+
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1.5px solid #d2d2d7; border-radius: 9px;
+      font-size: .88rem; color: #1d1d1f; background: #fff;
+      outline: none; transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #5b4fcf; }
+    textarea { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.5; }
+
+    /* ── Block palette ── */
+    .palette {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      margin-bottom: 16px;
+    }
+    .palette-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 8px; border: 1.5px solid transparent;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      transition: transform .1s, box-shadow .1s;
+      user-select: none;
+    }
+    .palette-btn:hover  { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+    .palette-btn:active { transform: translateY(0); }
+
+    .pb-theory      { background:#eef2ff; border-color:#a5b4fc; color:#4338ca; }
+    .pb-application { background:#f0fdf4; border-color:#86efac; color:#15803d; }
+    .pb-synthesis   { background:#fefce8; border-color:#fde047; color:#a16207; }
+    .pb-progressive { background:#fff7ed; border-color:#fdba74; color:#c2410c; }
+    .pb-casestudy   { background:#fdf4ff; border-color:#d8b4fe; color:#7e22ce; }
+    .pb-evaluation  { background:#fff1f2; border-color:#fda4af; color:#be123c; }
+
+    /* ── Block list ── */
+    .block-list {
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 56px;
+    }
+
+    .block-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px; border: 1.5px solid #e5e5ea;
+      background: #fff;
+      cursor: grab; user-select: none;
+      transition: box-shadow .15s, opacity .15s;
+    }
+    .block-item:active { cursor: grabbing; }
+    .block-item.dragging  { opacity: .4; }
+    .block-item.drag-over { box-shadow: 0 0 0 2px #5b4fcf; border-color: #5b4fcf; }
+
+    .drag-handle { color: #c7c7cc; font-size: 1rem; flex-shrink: 0; line-height: 1; }
+    .block-num   { width: 22px; height: 22px; border-radius: 50%; background: #f0f0f5; color: #6e6e73; font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .block-icon  { font-size: 1rem; flex-shrink: 0; }
+    .block-label { flex: 1; font-size: .85rem; font-weight: 600; }
+
+    .block-type-pill {
+      font-size: .68rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; flex-shrink: 0;
+    }
+    .tp-theory      { background:#eef2ff; color:#4338ca; }
+    .tp-application { background:#f0fdf4; color:#15803d; }
+    .tp-synthesis   { background:#fefce8; color:#a16207; }
+    .tp-progressive { background:#fff7ed; color:#c2410c; }
+    .tp-casestudy   { background:#fdf4ff; color:#7e22ce; }
+    .tp-evaluation  { background:#fff1f2; color:#be123c; }
+
+    .del-btn {
+      background: none; border: none; cursor: pointer;
+      color: #c7c7cc; font-size: 1rem; line-height: 1;
+      padding: 2px 4px; border-radius: 4px; flex-shrink: 0;
+      transition: color .15s;
+    }
+    .del-btn:hover { color: #f43f5e; }
+
+    .empty-msg {
+      text-align: center; padding: 18px; color: #aeaeb2;
+      font-size: .83rem; border: 1.5px dashed #d2d2d7;
+      border-radius: 10px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 7px; padding: 12px 22px; border: none; border-radius: 9px;
+      font-size: .875rem; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .btn-primary { background: #5b4fcf; color: #fff; width: 100%; margin-top: 4px; }
+    .btn-primary:hover:not(:disabled) { background: #4a3fbf; }
+    .btn-primary:disabled  { background: #b0aae8; cursor: not-allowed; }
+    .btn-dl    { background: #1c9e6a; color: #fff; }
+    .btn-dl:hover { background: #178059; }
+    .btn-reset { background: #f5f5f7; color: #3a3a3c; border: 1.5px solid #d2d2d7; }
+    .btn-reset:hover { background: #e8e8ed; }
+
+    /* ── Spinner ── */
+    .spin {
+      width: 16px; height: 16px;
+      border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff;
+      border-radius: 50%; animation: s .65s linear infinite;
+    }
+    @keyframes s { to { transform: rotate(360deg); } }
+
+    /* ── Error ── */
+    .error {
+      margin-top: 12px; padding: 10px 14px;
+      background: #fff0f0; border: 1px solid #ffc5c5;
+      border-radius: 9px; color: #c0392b; font-size: .84rem;
+    }
+
+    /* ── Course preview ── */
+    .course-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .course-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -.01em; }
+    .pill { padding: 3px 11px; border-radius: 20px; font-size: .72rem; font-weight: 700; background: #ede9fe; color: #5b4fcf; white-space: nowrap; }
+    .course-desc { color: #6e6e73; font-size: .875rem; line-height: 1.55; margin-bottom: 10px; }
+    .meta { display: flex; gap: 14px; font-size: .78rem; color: #aeaeb2; }
+
+    .objectives { margin-top: 14px; padding: 12px 15px; background: #f2fdf8; border-left: 3px solid #1c9e6a; border-radius: 0 9px 9px 0; }
+    .objectives h3 { font-size: .7rem; font-weight: 700; color: #0f6b48; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px; }
+    .objectives ul { list-style: none; }
+    .objectives li { font-size: .83rem; color: #2d2d2d; padding: 2px 0 2px 16px; position: relative; }
+    .objectives li::before { content: '✓'; position: absolute; left: 0; color: #1c9e6a; font-weight: 700; }
+
+    /* Section accordion */
+    .sections { margin-top: 18px; }
+    .sec { border-radius: 11px; margin-bottom: 8px; overflow: hidden; border: 1.5px solid #e5e5ea; }
+
+    /* Type-specific left border colors */
+    .sec-theory      { border-left: 3px solid #6366f1; }
+    .sec-application { border-left: 3px solid #22c55e; }
+    .sec-synthesis   { border-left: 3px solid #eab308; }
+    .sec-progressive { border-left: 3px solid #f97316; }
+    .sec-casestudy   { border-left: 3px solid #a855f7; }
+    .sec-evaluation  { border-left: 3px solid #f43f5e; }
+
+    .sec-hd {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; cursor: pointer; background: #fff;
+      transition: background .1s; user-select: none;
+    }
+    .sec-hd:hover { background: #fafafa; }
+
+    .sec-type-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .dot-theory      { background: #6366f1; }
+    .dot-application { background: #22c55e; }
+    .dot-synthesis   { background: #eab308; }
+    .dot-progressive { background: #f97316; }
+    .dot-casestudy   { background: #a855f7; }
+    .dot-evaluation  { background: #f43f5e; }
+
+    .sec-num   { width: 24px; height: 24px; background: #f0f0f5; color: #6e6e73; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; flex-shrink: 0; }
+    .sec-info  { flex: 1; }
+    .sec-title { font-size: .875rem; font-weight: 600; }
+    .sec-sub   { font-size: .7rem; color: #aeaeb2; margin-top: 1px; }
+    .chevron   { color: #aeaeb2; transition: transform .2s; flex-shrink: 0; }
+    .chevron.open { transform: rotate(180deg); }
+
+    .sec-body { padding: 0 14px; display: none; }
+    .sec-body.open { display: block; padding-bottom: 14px; }
+
+    .sec-content { font-size: .855rem; color: #3a3a3c; line-height: 1.65; white-space: pre-line; margin-bottom: 12px; }
+
+    .kp-box, .ex-box {
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 9px;
+    }
+    .kp-box { background: #f5f5f7; }
+    .ex-box  { background: #fff8f0; border-left: 3px solid #f5831f; border-radius: 0 8px 8px 0; }
+    .kp-box h4, .ex-box h4 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+    .kp-box h4 { color: #3a3a3c; }
+    .ex-box h4 { color: #b35c00; }
+    .kp-box li { list-style: none; font-size: .82rem; color: #3a3a3c; padding: 2px 0 2px 13px; position: relative; }
+    .kp-box li::before { content: '·'; position: absolute; left: 2px; color: #5b4fcf; font-size: 1.1em; }
+    .ex-box p  { font-size: .83rem; color: #3a3a3c; font-style: italic; line-height: 1.5; }
+
+    /* ── Blocs pédagogiques dans l'aperçu ── */
+    .def-box {
+      padding: 10px 14px; margin: 10px 0;
+      background: #eef2ff; border-left: 3px solid #6366f1;
+      border-radius: 0 8px 8px 0; font-size: .855rem; color: #1d1d1f; line-height: 1.5;
+    }
+    .formula-box {
+      padding: 10px 14px; margin: 10px 0;
+      background: #f0fdf4; border-left: 3px solid #22c55e;
+      border-radius: 0 8px 8px 0; font-size: .9rem; font-weight: 700;
+      color: #15803d; font-family: 'Courier New', monospace;
+    }
+    .example-box {
+      padding: 10px 14px; margin: 10px 0;
+      background: #fafafa; border-left: 3px solid #d1d5db;
+      border-radius: 0 8px 8px 0; font-size: .84rem; color: #374151; line-height: 1.6;
+    }
+    .retain-box {
+      padding: 10px 14px; margin: 10px 0;
+      background: #fffbeb; border-left: 3px solid #f59e0b;
+      border-radius: 0 8px 8px 0; font-size: .84rem; font-weight: 600; color: #92400e;
+    }
+    .app-header {
+      font-size: .875rem; font-weight: 700; color: #1d4ed8; margin-bottom: 6px;
+    }
+    .context-text {
+      font-size: .84rem; color: #374151; font-style: italic; margin-bottom: 10px; line-height: 1.5;
+    }
+    .qa-item { margin-bottom: 8px; }
+    .qa-q    { font-size: .855rem; font-weight: 600; color: #1d1d1f; margin-bottom: 3px; }
+    .qa-a    { font-size: .84rem; color: #065f46; font-style: italic; padding-left: 14px; line-height: 1.5; }
+
+    .synth-point { margin-bottom: 10px; }
+    .synth-point-title { font-size: .855rem; font-weight: 700; color: #1d1d1f; margin-bottom: 3px; }
+    .synth-point-content { font-size: .84rem; color: #374151; line-height: 1.5; }
+    .synth-formula {
+      font-size: .84rem; font-weight: 700; color: #15803d;
+      background: #f0fdf4; padding: 4px 10px; border-radius: 6px;
+      margin-top: 4px; display: inline-block; font-family: 'Courier New', monospace;
+    }
+
+    .ex-item { margin-bottom: 14px; border-top: 1px solid #e5e5ea; padding-top: 12px; }
+    .ex-item:first-child { border-top: none; padding-top: 0; }
+    .ex-name { font-size: .855rem; font-weight: 700; color: #c2410c; margin-bottom: 4px; }
+
+    /* Actions */
+    .actions { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e5e5ea; margin-top: 16px; gap: 10px; flex-wrap: wrap; }
+    .actions-info { font-size: .78rem; color: #aeaeb2; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 480px) {
+      .fg { grid-template-columns: 1fr; }
+      .full { grid-column: 1; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">IA · Anthropic Claude</div>
+    <h1>Générateur de Cours</h1>
+    <p>Structurez votre cours par blocs, puis générez et exportez en Word.</p>
+  </div>
+
+  <!-- 1 · Informations générales -->
+  <div class="card">
+    <div class="card-title">1 — Informations générales</div>
+    <div class="fg">
+      <div class="field full">
+        <label for="topic">Sujet du cours</label>
+        <input id="topic" type="text" placeholder="ex : Les fonctions en Python, Le contrat de travail, La photosynthèse…" />
+      </div>
+      <div class="field full">
+        <label for="referentiel">Référentiel / Cadre pédagogique</label>
+        <select id="referentiel">
+          <option value="">— Aucun référentiel particulier —</option>
+          <option value="Enseignement primaire (CP–CM2)">Enseignement primaire (CP–CM2)</option>
+          <option value="Collège (6ème–3ème)">Collège (6ème–3ème)</option>
+          <option value="Lycée général et technologique">Lycée général et technologique</option>
+          <option value="Bac Professionnel">Bac Professionnel</option>
+          <option value="BTS / BUT">BTS / BUT</option>
+          <option value="Licence / Licence Pro">Licence / Licence Pro</option>
+          <option value="Master / Grandes Écoles">Master / Grandes Écoles</option>
+          <option value="Formation professionnelle continue">Formation professionnelle continue</option>
+          <option value="Autoformation / E-learning">Autoformation / E-learning</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="level">Niveau des apprenants</label>
+        <select id="level">
+          <option value="beginner">Débutant</option>
+          <option value="intermediate" selected>Intermédiaire</option>
+          <option value="advanced">Avancé</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="language">Langue du cours</label>
+        <select id="language">
+          <option value="fr" selected>Français</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label for="pedagogy">Approche pédagogique</label>
+        <select id="pedagogy">
+          <option value="deductive" selected>Déductive — règle puis exemples</option>
+          <option value="inductive">Inductive — observation puis règle</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 · Structure -->
+  <div class="card">
+    <div class="card-title">2 — Structure du cours</div>
+
+    <div style="font-size:.78rem;color:#6e6e73;margin-bottom:10px;">
+      Cliquez sur un bloc pour l'ajouter · Glissez pour réordonner · ✕ pour supprimer
+    </div>
+
+    <div class="palette" id="palette">
+      <button class="palette-btn pb-theory"      onclick="addBlock('theory')">      📘 Apport théorique</button>
+      <button class="palette-btn pb-application" onclick="addBlock('application')"> 🔧 Application pratique</button>
+      <button class="palette-btn pb-synthesis"   onclick="addBlock('synthesis')">   🔄 Synthèse</button>
+      <button class="palette-btn pb-progressive" onclick="addBlock('progressive')"> 📈 Exercices progressifs</button>
+      <button class="palette-btn pb-casestudy"   onclick="addBlock('casestudy')">   💡 Étude de cas</button>
+      <button class="palette-btn pb-evaluation"  onclick="addBlock('evaluation')">  ❓ Évaluation</button>
+    </div>
+
+    <div class="block-list" id="blockList"></div>
+  </div>
+
+  <!-- 3 · Instructions libres -->
+  <div class="card">
+    <div class="card-title">3 — Instructions personnalisées <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c7c7cc;">(optionnel)</span></div>
+    <div class="field">
+      <label for="custom">Modifier ou préciser l'architecture — décrivez librement vos contraintes pédagogiques</label>
+      <textarea id="custom" placeholder="ex : Commence par une question de mise en situation avant chaque apport théorique. Les exercices doivent utiliser des données réelles françaises. La synthèse doit prendre la forme d'une carte mentale décrite textuellement."></textarea>
+    </div>
+  </div>
+
+  <div id="errMsg" class="error hidden"></div>
+
+  <button class="btn btn-primary" id="genBtn" onclick="generate()">
+    <span id="btnTxt">Générer le cours</span>
+    <div class="spin hidden" id="spin"></div>
+  </button>
+
+  <!-- Aperçu du cours -->
+  <div class="card hidden" id="courseCard" style="margin-top:20px;">
+    <div class="course-top">
+      <div class="course-title" id="cTitle"></div>
+      <div class="pill" id="cLevel"></div>
+    </div>
+    <div class="course-desc" id="cDesc"></div>
+    <div class="meta">
+      <span id="cDuration"></span>
+      <span id="cSections"></span>
+    </div>
+
+    <div class="objectives">
+      <h3>Objectifs pédagogiques</h3>
+      <ul id="cObjectives"></ul>
+    </div>
+
+    <div class="sections" id="cSections"></div>
+
+    <div class="actions">
+      <span class="actions-info" id="actInfo"></span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
+        <button class="btn btn-dl"    onclick="download()">⬇ Télécharger .docx</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Block definitions ─────────────────────────────────────────────────────
+const BLOCKS = {
+  theory:      { label: 'Apport théorique',     icon: '📘', cls: 'theory' },
+  application: { label: 'Application pratique', icon: '🔧', cls: 'application' },
+  synthesis:   { label: 'Synthèse',             icon: '🔄', cls: 'synthesis' },
+  progressive: { label: 'Exercices progressifs',icon: '📈', cls: 'progressive' },
+  casestudy:   { label: 'Étude de cas',         icon: '💡', cls: 'casestudy' },
+  evaluation:  { label: 'Évaluation',           icon: '❓', cls: 'evaluation' },
+};
+
+// Default structure
+let blocks = [
+  { id: uid(), type: 'theory' },
+  { id: uid(), type: 'application' },
+  { id: uid(), type: 'theory' },
+  { id: uid(), type: 'application' },
+  { id: uid(), type: 'synthesis' },
+  { id: uid(), type: 'progressive' },
+];
+
+let course = null;
+let dragIdx = null;
+let overIdx = null;
+
+function uid() { return Math.random().toString(36).slice(2); }
+
+// ── Block list rendering ──────────────────────────────────────────────────
+function renderBlocks() {
+  const list = document.getElementById('blockList');
+  if (!blocks.length) {
+    list.innerHTML = '<div class="empty-msg">Ajoutez des blocs depuis la palette ci-dessus.</div>';
+    return;
+  }
+  list.innerHTML = blocks.map((b, i) => {
+    const def = BLOCKS[b.type] || { label: b.type, icon: '▪', cls: b.type };
+    return `
+    <div class="block-item"
+      draggable="true"
+      data-idx="${i}"
+      ondragstart="onDragStart(event,${i})"
+      ondragover="onDragOver(event,${i})"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event,${i})"
+      ondragend="onDragEnd(event)"
+      id="blk-${b.id}">
+      <span class="drag-handle">⠿</span>
+      <span class="block-num">${i + 1}</span>
+      <span class="block-icon">${def.icon}</span>
+      <span class="block-label">${def.label}</span>
+      <span class="block-type-pill tp-${def.cls}">${def.label}</span>
+      <button class="del-btn" onclick="removeBlock(${i})" title="Supprimer">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addBlock(type) {
+  blocks.push({ id: uid(), type });
+  renderBlocks();
+}
+
+function removeBlock(i) {
+  blocks.splice(i, 1);
+  renderBlocks();
+}
+
+// ── Drag & drop ───────────────────────────────────────────────────────────
+function onDragStart(e, i) {
+  dragIdx = i;
+  setTimeout(() => e.target.classList.add('dragging'), 0);
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e, i) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if (i === dragIdx) return;
+  overIdx = i;
+  document.querySelectorAll('.block-item').forEach((el, j) =>
+    el.classList.toggle('drag-over', j === i)
+  );
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e, i) {
+  e.preventDefault();
+  if (dragIdx === null || dragIdx === i) return;
+  const [moved] = blocks.splice(dragIdx, 1);
+  blocks.splice(i, 0, moved);
+  dragIdx = null; overIdx = null;
+  renderBlocks();
+}
+
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.block-item').forEach(el => el.classList.remove('drag-over'));
+  dragIdx = null; overIdx = null;
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────
+async function generate() {
+  const topic = document.getElementById('topic').value.trim();
+  if (!topic) { showErr('Veuillez saisir un sujet.'); return; }
+  if (!blocks.length) { showErr('Ajoutez au moins un bloc dans la structure.'); return; }
+
+  setLoading(true);
+  hideErr();
+
+  try {
+    const r = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic,
+        level:              val('level'),
+        language:           val('language'),
+        referentiel:        val('referentiel'),
+        customInstructions: document.getElementById('custom').value.trim(),
+        pedagogyStructure:  val('pedagogy'),
+        blocks:             blocks.map(b => b.type),
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Erreur serveur');
+    course = d.course;
+    renderCourse(course, val('level'));
+  } catch (e) {
+    showErr('Erreur : ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Rendu du corps d'une section selon son type ───────────────────────────
+function renderSectionBody(s) {
+  switch (s.type) {
+
+    case 'theory':
+      return `
+        ${s.content  ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
+        ${s.definition ? `<div class="def-box">${esc(s.definition)}</div>` : ''}
+        ${s.formula    ? `<div class="formula-box">${esc(s.formula)}</div>` : ''}
+        ${s.example    ? `<div class="example-box"><strong>Exemple :</strong> ${esc(s.example)}</div>` : ''}
+        ${s.toRetain   ? `<div class="retain-box">${esc(s.toRetain)}</div>` : ''}`;
+
+    case 'application':
+    case 'casestudy':
+      return `
+        ${s.restaurantName ? `<div class="app-header">${esc(s.title || '')}  —  ${esc(s.restaurantName)}</div>` : ''}
+        ${s.context ? `<div class="context-text">${esc(s.context)}</div>` : ''}
+        ${(s.questions || []).map((qa, qi) => `
+          <div class="qa-item">
+            <div class="qa-q">${qi + 1}. ${esc(qa.q)}</div>
+            ${qa.answer ? `<div class="qa-a">${esc(qa.answer)}</div>` : ''}
+          </div>`).join('')}`;
+
+    case 'synthesis':
+      return `
+        ${s.content ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
+        ${(s.points || []).map(pt => `
+          <div class="synth-point">
+            <div class="synth-point-title">${pt.number} · ${esc(pt.title)}</div>
+            ${pt.content ? `<div class="synth-point-content">${esc(pt.content)}</div>` : ''}
+            ${pt.formula ? `<div class="synth-formula">${esc(pt.formula)}</div>` : ''}
+          </div>`).join('')}`;
+
+    case 'progressive':
+      return (s.exercises || []).map(ex => `
+        <div class="ex-item">
+          <div class="ex-name">Exercice ${ex.number}  —  ${esc(ex.restaurantName || '')}</div>
+          ${ex.context ? `<div class="context-text">${esc(ex.context)}</div>` : ''}
+          ${(ex.questions || []).map((qa, qi) => `
+            <div class="qa-item">
+              <div class="qa-q">${qi + 1}. ${esc(qa.q)}</div>
+              ${qa.answer ? `<div class="qa-a">${esc(qa.answer)}</div>` : ''}
+            </div>`).join('')}
+        </div>`).join('');
+
+    case 'evaluation':
+      return (s.questions || []).map((qa, qi) => `
+        <div class="qa-item">
+          <div class="qa-q">${qi + 1}. ${esc(qa.q)}</div>
+          ${qa.answer ? `<div class="qa-a">${esc(qa.answer)}</div>` : ''}
+        </div>`).join('');
+
+    default:
+      return `
+        ${s.content ? `<div class="sec-content">${esc(s.content)}</div>` : ''}
+        ${(s.keyPoints || []).map(k => `<div class="sec-content">• ${esc(k)}</div>`).join('')}
+        ${s.exercise ? `<div class="ex-box"><h4>Exercice</h4><p>${esc(s.exercise)}</p></div>` : ''}`;
+  }
+}
+
+// ── Course preview rendering ──────────────────────────────────────────────
+function renderCourse(c, level) {
+  document.getElementById('cTitle').textContent    = c.title;
+  document.getElementById('cDesc').textContent     = c.subtitle || c.description || '';
+  document.getElementById('cDuration').textContent = c.duration ? '⏱ ' + c.duration : '';
+  document.getElementById('cSections').textContent = `📚 ${c.sections.length} sections`;
+
+  const lvlMap = { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' };
+  document.getElementById('cLevel').textContent  = lvlMap[level] || level;
+  document.getElementById('actInfo').textContent = `${c.sections.length} sections générées`;
+
+  const ol = document.getElementById('cObjectives');
+  ol.innerHTML = (c.objectives || []).map(o => `<li>${esc(o)}</li>`).join('');
+
+  const sl = document.getElementById('cSections');
+  sl.innerHTML = c.sections.map((s, i) => {
+    const def  = BLOCKS[s.type] || { label: s.type || '', icon: '▪', cls: '' };
+    const tCls = def.cls;
+    return `
+    <div class="sec sec-${tCls}">
+      <div class="sec-hd" onclick="toggle(${i})">
+        <div class="sec-type-dot dot-${tCls}"></div>
+        <div class="sec-num">${i + 1}</div>
+        <div class="sec-info">
+          <div class="sec-title">${esc(s.title)}</div>
+          <div class="sec-sub">${def.icon} ${def.label}</div>
+        </div>
+        <svg class="chevron" id="ch${i}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="sec-body" id="bd${i}">
+        ${renderSectionBody(s)}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('courseCard').classList.remove('hidden');
+  document.getElementById('courseCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggle(i) {
+  document.getElementById('bd' + i).classList.toggle('open');
+  document.getElementById('ch' + i).classList.toggle('open');
+}
+
+// ── Download ──────────────────────────────────────────────────────────────
+async function download() {
+  if (!course) return;
+  try {
+    const r = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ course })
+    });
+    if (!r.ok) throw new Error('Erreur génération fichier');
+    const blob = await r.blob();
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx'
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { showErr('Erreur téléchargement : ' + e.message); }
+}
+
+function resetCourse() {
+  course = null;
+  document.getElementById('courseCard').classList.add('hidden');
+  document.getElementById('topic').value = '';
+  document.getElementById('topic').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('genBtn').disabled = on;
+  document.getElementById('btnTxt').textContent = on ? 'Génération en cours…' : 'Générer le cours';
+  document.getElementById('spin').classList.toggle('hidden', !on);
+}
+function showErr(m) { const e = document.getElementById('errMsg'); e.textContent = m; e.classList.remove('hidden'); }
+function hideErr()  { document.getElementById('errMsg').classList.add('hidden'); }
+function val(id)    { return document.getElementById(id).value; }
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'topic') generate();
+});
+
+// Init
+renderBlocks();
+</script>
+</body>
+</html>
