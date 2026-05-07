@@ -372,9 +372,12 @@
         <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
         <button id="dlBtn" class="btn btn-dl" onclick="download()" style="display:none;">⬇ Télécharger .docx</button>
       </div>
-      <div id="dlFallback" style="display:none;margin-top:10px;font-size:13px;color:#374151;">
-        Si le téléchargement ne démarre pas, copie ce lien dans un nouvel onglet :<br>
-        <a id="dlDirectUrl" href="#" style="word-break:break-all;color:#1D4ED8;"></a>
+      <div id="dlFallback" style="display:none;margin-top:12px;font-size:13px;color:#374151;background:#F3F4F6;border-radius:8px;padding:10px 14px;">
+        <div style="margin-bottom:6px;font-weight:600;">📥 Copie ce lien et colle-le dans un nouvel onglet :</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <code id="dlDirectUrl" style="font-size:12px;background:#fff;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;word-break:break-all;flex:1;"></code>
+          <button onclick="copyDlLink()" id="copyBtn" style="white-space:nowrap;background:#1D4ED8;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">📋 Copier</button>
+        </div>
       </div>
     </div>
   </div>
@@ -631,9 +634,7 @@ async function generate() {
     if (downloadId) {
       const fullUrl = window.location.origin + '/api/download/' + downloadId;
       document.getElementById('dlBtn').style.display = '';
-      const a = document.getElementById('dlDirectUrl');
-      a.href = fullUrl;
-      a.textContent = fullUrl;
+      document.getElementById('dlDirectUrl').textContent = fullUrl;
       document.getElementById('dlFallback').style.display = '';
     }
   } catch (e) {
@@ -746,6 +747,19 @@ function toggle(i) {
 
 function download() {
   if (downloadId) window.open('/api/download/' + downloadId, '_blank');
+}
+
+function copyDlLink() {
+  const url = document.getElementById('dlDirectUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copié !';
+    btn.style.background = '#16A34A';
+    setTimeout(() => { btn.textContent = '📋 Copier'; btn.style.background = '#1D4ED8'; }, 2000);
+  }).catch(() => {
+    document.getElementById('dlDirectUrl').select?.();
+    alert('Copie manuelle : sélectionne le lien et fais Ctrl+C');
+  });
 }
 
 function resetCourse() {
