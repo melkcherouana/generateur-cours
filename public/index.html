@@ -372,6 +372,10 @@
         <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
         <button id="dlBtn" class="btn btn-dl" onclick="download()" style="display:none;">⬇ Télécharger .docx</button>
       </div>
+      <div id="dlFallback" style="display:none;margin-top:10px;font-size:13px;color:#374151;">
+        Si le téléchargement ne démarre pas, copie ce lien dans un nouvel onglet :<br>
+        <a id="dlDirectUrl" href="#" style="word-break:break-all;color:#1D4ED8;"></a>
+      </div>
     </div>
   </div>
 
@@ -625,7 +629,12 @@ async function generate() {
     downloadId = d.downloadId || null;
     renderCourse(course, classe);
     if (downloadId) {
+      const fullUrl = window.location.origin + '/api/download/' + downloadId;
       document.getElementById('dlBtn').style.display = '';
+      const a = document.getElementById('dlDirectUrl');
+      a.href = fullUrl;
+      a.textContent = fullUrl;
+      document.getElementById('dlFallback').style.display = '';
     }
   } catch (e) {
     showErr('Erreur : ' + e.message);
@@ -736,12 +745,13 @@ function toggle(i) {
 
 
 function download() {
-  if (downloadId) window.location.href = '/api/download/' + downloadId;
+  if (downloadId) window.open('/api/download/' + downloadId, '_blank');
 }
 
 function resetCourse() {
   course = null; downloadId = null;
   document.getElementById('dlBtn').style.display = 'none';
+  document.getElementById('dlFallback').style.display = 'none';
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('diplome').value = '';
   document.getElementById('custom').value  = '';
