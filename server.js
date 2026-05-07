@@ -1167,6 +1167,33 @@ function setDownloadHeaders(res, filename) {
   res.setHeader('Content-Security-Policy', 'frame-ancestors *');
 }
 
+// ── Page popup de téléchargement (hors sandbox Wix) ──────────────────────
+app.get('/telecharger/:id', (req, res) => {
+  const id = req.params.id;
+  const entry = courseCache.get(id);
+  const titre = entry?.course?.title || 'votre cours';
+  res.send(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>Téléchargement</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#F0F4FF;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .card{background:#fff;border-radius:16px;padding:36px 40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.10);max-width:420px;width:100%}
+  h2{font-size:1.2rem;color:#1e3a8a;margin-bottom:8px}
+  p{color:#6B7280;font-size:.95rem;margin-bottom:28px}
+  a.btn{display:inline-block;background:#1D4ED8;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:1rem;font-weight:600;letter-spacing:.02em}
+  a.btn:hover{background:#1e40af}
+  .note{margin-top:18px;font-size:.82rem;color:#9CA3AF}
+</style>
+</head><body>
+<div class="card">
+  <h2>📄 ${titre}</h2>
+  <p>Votre cours est prêt.<br>Cliquez sur le bouton pour télécharger le fichier Word.</p>
+  <a class="btn" href="/api/download/${id}">⬇&nbsp; Télécharger .docx</a>
+  <p class="note">Vous pouvez fermer cette fenêtre après le téléchargement.</p>
+</div>
+</body></html>`);
+});
+
 // ── GET /api/download/:id — ouvert via window.open() depuis l'iframe ──────
 app.get('/api/download/:id', async (req, res) => {
   const entry = courseCache.get(req.params.id);
