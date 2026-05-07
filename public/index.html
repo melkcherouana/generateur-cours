@@ -732,8 +732,30 @@ function toggle(i) {
 }
 
 // ── Téléchargement ────────────────────────────────────────────────────────
-function download() {
-  if (downloadId) window.open('/api/download/' + downloadId, '_blank');
+async function download() {
+  if (!downloadId) return;
+  const btn = document.querySelector('.btn-dl');
+  const orig = btn.textContent;
+  btn.textContent = 'Téléchargement…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/download/' + downloadId);
+    if (!r.ok) throw new Error('Erreur serveur ' + r.status);
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = (course?.title || 'cours').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) {
+    alert('Impossible de télécharger le fichier : ' + e.message);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
 }
 
 function resetCourse() {
