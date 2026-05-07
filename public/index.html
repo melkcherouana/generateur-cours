@@ -370,7 +370,7 @@
       <span class="actions-info" id="actInfo"></span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-reset" onclick="resetCourse()">Nouveau cours</button>
-        <button class="btn btn-dl"    onclick="download()">⬇ Télécharger .docx</button>
+        <a id="dlLink" class="btn btn-dl" href="#" target="_blank" rel="noopener" style="display:none;text-decoration:none;">⬇ Télécharger .docx</a>
       </div>
     </div>
   </div>
@@ -624,6 +624,11 @@ async function generate() {
     course     = d.course;
     downloadId = d.downloadId || null;
     renderCourse(course, classe);
+    if (downloadId) {
+      const lnk = document.getElementById('dlLink');
+      lnk.href  = window.location.origin + '/api/download/' + downloadId;
+      lnk.style.display = '';
+    }
   } catch (e) {
     showErr('Erreur : ' + e.message);
   } finally {
@@ -731,35 +736,11 @@ function toggle(i) {
   document.getElementById('ch' + i).classList.toggle('open');
 }
 
-// ── Téléchargement ────────────────────────────────────────────────────────
-async function download() {
-  if (!downloadId) return;
-  const btn = document.querySelector('.btn-dl');
-  const orig = btn.textContent;
-  btn.textContent = 'Téléchargement…';
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/download/' + downloadId);
-    if (!r.ok) throw new Error('Erreur serveur ' + r.status);
-    const blob = await r.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = (course?.title || 'cours').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  } catch (e) {
-    alert('Impossible de télécharger le fichier : ' + e.message);
-  } finally {
-    btn.textContent = orig;
-    btn.disabled = false;
-  }
-}
 
 function resetCourse() {
   course = null; downloadId = null;
+  const lnk = document.getElementById('dlLink');
+  lnk.href = '#'; lnk.style.display = 'none';
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('diplome').value = '';
   document.getElementById('custom').value  = '';
