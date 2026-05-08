@@ -2,6 +2,7 @@ require('dotenv').config();
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
+const fs         = require('fs');
 const {
   Document, Packer, Paragraph, TextRun,
   HeadingLevel, AlignmentType, BorderStyle,
@@ -16,6 +17,9 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const FICHIERS_DIR = path.join(__dirname, 'fichiers');
+if (!fs.existsSync(FICHIERS_DIR)) fs.mkdirSync(FICHIERS_DIR, { recursive: true });
 
 // ── Référentiels professionnels ───────────────────────────────────────────
 const REFERENTIELS = {
@@ -363,7 +367,24 @@ ${JSON_SCHEMA}`;
     if (data.stop_reason === 'max_tokens') console.warn('Réponse tronquée — réparation JSON');
     const course     = extractJson(data.content[0].text.trim());
     const downloadId = storeCourse(course);
-    res.json({ course, downloadId });
+
+    // Génération et sauvegarde du fichier docx pour téléchargement direct
+    const { buffer } = await buildDocx(course);
+    const fileId   = `cours-${downloadId}`;
+    const filePath = path.join(FICHIERS_DIR, `${fileId}.docx`);
+    fs.writeFileSync(filePath, buffer);
+
+    // Nettoyage des fichiers > 2h
+    for (const f of fs.readdirSync(FICHIERS_DIR)) {
+      const fp   = path.join(FICHIERS_DIR, f);
+      const stat = fs.statSync(fp);
+      if (Date.now() - stat.mtimeMs > 7200000) fs.unlinkSync(fp);
+    }
+
+    const proto   = req.headers['x-forwarded-proto'] || req.protocol;
+    const fileUrl = `${proto}://${req.get('host')}/fichiers/${fileId}.docx`;
+
+    res.json({ course, downloadId, fileUrl });
 
   } catch (err) {
     console.error(err);
@@ -1222,5 +1243,19 @@ app.post('/api/download', async (req, res) => {
   }
 });
 
+
+// ── Téléchargement direct — URL publique permanente ───────────────────────
+app.get('/fichiers/:filename', (req, res) => {
+  const filename = req.params.filename;
+  if (!/^cours-[a-z0-9]+\.docx$/.test(filename))
+    return res.status(400).send('Fichier invalide.');
+  const filePath = path.join(FICHIERS_DIR, filename);
+  if (!fs.existsSync(filePath))
+    return res.status(404).send('Fichier introuvable ou expiré. Régénérez le cours.');
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.sendFile(filePath);
+});
 
 app.listen(PORT, () => console.log(`Serveur démarré → http://localhost:${PORT}`));

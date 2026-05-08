@@ -461,6 +461,7 @@ let blocks = [
 
 let course     = null;
 let downloadId = null;
+let fileUrl    = null;
 let dragIdx    = null;
 
 function uid() { return Math.random().toString(36).slice(2); }
@@ -623,8 +624,9 @@ async function generate() {
     if (!r.ok) throw new Error(d.error || 'Erreur serveur');
     course     = d.course;
     downloadId = d.downloadId || null;
+    fileUrl    = d.fileUrl    || null;
     renderCourse(course, classe);
-    if (downloadId) {
+    if (fileUrl || downloadId) {
       document.getElementById('dlBtn').style.display = '';
     }
   } catch (e) {
@@ -736,11 +738,12 @@ function toggle(i) {
 
 
 function download() {
-  if (downloadId) window.open('/telecharger/' + downloadId, '_blank', 'width=480,height=260,toolbar=0,menubar=0,location=0');
+  if (fileUrl) window.open(fileUrl, '_blank');
+  else if (downloadId) window.open('/telecharger/' + downloadId, '_blank', 'width=480,height=260,toolbar=0,menubar=0,location=0');
 }
 
 function resetCourse() {
-  course = null; downloadId = null;
+  course = null; downloadId = null; fileUrl = null;
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('courseCard').classList.add('hidden');
   document.getElementById('diplome').value = '';
