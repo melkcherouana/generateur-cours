@@ -201,7 +201,6 @@ const JSON_SCHEMA = `{
   "title": "Titre du cours",
   "subtitle": "Thèmes abordés séparés par ·",
   "companyName": "Nom de l'entreprise fictive utilisée dans TOUT le cours (cohérente avec l'activité : supermarché/hypermarché pour CAP EPC, enseigne de distribution pour Bac Pro MDCD)",
-  "objectives": ["objectif 1", "objectif 2", "objectif 3"],
   "sections": [
     {
       "type": "theory|application|synthesis|progressive|casestudy|evaluation",
@@ -389,6 +388,11 @@ ${JSON_SCHEMA}`;
     const truncated = data.stop_reason === 'max_tokens';
     if (truncated) console.warn('Réponse tronquée — réparation JSON');
     const course = extractJson(data.content[0].text.trim());
+
+    // Injecter les compétences du référentiel (pas générées par l'IA)
+    course.competences        = activiteData.competences || [];
+    course.selectedCompetence = competence;
+    course.activiteLabel      = activiteLabel;
 
     // Détecter les sections manquantes (troncature)
     const generatedTypes = new Set(course.sections.map(s => s.type));
@@ -988,15 +992,28 @@ async function buildDocx(course, wordFormat = {}) {
       }));
     }
 
-    // ── Objectifs ──
-    if (course.objectives?.length) {
+    // ── Compétences du référentiel ──
+    if (course.competences?.length) {
       children.push(divider());
       children.push(new Paragraph({
-        text: 'Objectifs pédagogiques',
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 100, after: 100 }
+        children: [run('Compétences du référentiel', { bold: true, size: 28 })],
+        spacing: { before: 100, after: 120 }
       }));
-      course.objectives.forEach(o => children.push(body(`• ${o}`)));
+      if (course.activiteLabel) {
+        children.push(body(
+          [run(course.activiteLabel, { italics: true, size: 20, color: '6B7280' })],
+          { spacing: { after: 80 } }
+        ));
+      }
+      course.competences.forEach(c => {
+        const selected = c === course.selectedCompetence;
+        children.push(body(
+          selected
+            ? [run('▶  ', { bold: true, color: '1D4ED8' }), run(c, { bold: true, color: '1D4ED8' })]
+            : [run('○  ', { color: 'D1D5DB' }), run(c, { color: '6B7280' })],
+          { spacing: { after: 60 } }
+        ));
+      });
     }
 
     // ── Sections ──

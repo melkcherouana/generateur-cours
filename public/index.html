@@ -156,11 +156,14 @@
     .course-desc { color: #6e6e73; font-size: .875rem; line-height: 1.55; margin-bottom: 10px; }
     .meta { display: flex; gap: 14px; font-size: .78rem; color: #aeaeb2; }
 
-    .objectives { margin-top: 14px; padding: 12px 15px; background: #f2fdf8; border-left: 3px solid #1c9e6a; border-radius: 0 9px 9px 0; }
-    .objectives h3 { font-size: .7rem; font-weight: 700; color: #0f6b48; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px; }
+    .objectives { margin-top: 14px; padding: 12px 15px; background: #f0f4ff; border-left: 3px solid #6366f1; border-radius: 0 9px 9px 0; }
+    .objectives h3 { font-size: .7rem; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .objectives .act-label { font-size: .75rem; color: #6e6e73; font-style: italic; margin-bottom: 8px; }
     .objectives ul { list-style: none; }
-    .objectives li { font-size: .83rem; color: #2d2d2d; padding: 2px 0 2px 16px; position: relative; }
-    .objectives li::before { content: '✓'; position: absolute; left: 0; color: #1c9e6a; font-weight: 700; }
+    .objectives li { font-size: .83rem; color: #6e6e73; padding: 2px 0 2px 18px; position: relative; }
+    .objectives li::before { content: '○'; position: absolute; left: 0; color: #d1d5db; }
+    .objectives li.comp-selected { color: #1d4ed8; font-weight: 700; }
+    .objectives li.comp-selected::before { content: '▶'; color: #1d4ed8; }
 
     /* Section accordion */
     .sections { margin-top: 18px; }
@@ -431,8 +434,9 @@
     </div>
 
     <div class="objectives">
-      <h3>Objectifs pédagogiques</h3>
-      <ul id="cObjectives"></ul>
+      <h3>Compétences du référentiel</h3>
+      <div class="act-label" id="cActLabel"></div>
+      <ul id="cCompetences"></ul>
     </div>
 
     <div id="noAnswersBanner" class="hidden" style="margin:10px 0;padding:8px 14px;background:#fff7ed;border-left:3px solid #f97316;border-radius:0 8px 8px 0;font-size:.8rem;color:#c2410c;font-weight:600;">
@@ -807,8 +811,11 @@ function renderCourse(c, classe) {
   document.getElementById('cPill').textContent         = classe;
   document.getElementById('actInfo').textContent       = `${c.sections.length} sections générées`;
 
-  document.getElementById('cObjectives').innerHTML =
-    (c.objectives || []).map(o => `<li>${esc(o)}</li>`).join('');
+  document.getElementById('cActLabel').textContent = c.activiteLabel || '';
+  document.getElementById('cCompetences').innerHTML =
+    (c.competences || []).map(comp =>
+      `<li ${comp === c.selectedCompetence ? 'class="comp-selected"' : ''}>${esc(comp)}</li>`
+    ).join('');
 
   document.getElementById('cSectionsList').innerHTML = c.sections.map((s, i) => {
     const def  = BLOCKS[s.type] || { label: s.type || '', icon: '▪', cls: '' };
