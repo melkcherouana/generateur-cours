@@ -6,7 +6,8 @@ const fs         = require('fs');
 const {
   Document, Packer, Paragraph, TextRun,
   HeadingLevel, AlignmentType, BorderStyle,
-  ShadingType, TableRow, TableCell, Table, WidthType
+  ShadingType, TableRow, TableCell, Table, WidthType,
+  PageNumber, Footer
 } = require('docx');
 
 const app     = express();
@@ -224,9 +225,9 @@ const JSON_SCHEMA = `{
 
 // ── Cache temporaire des cours (download par GET) ────────────────────────
 const courseCache = new Map();
-function storeCourse(course) {
+function storeCourse(course, wordFormat) {
   const id = Math.random().toString(36).slice(2, 10);
-  courseCache.set(id, { course, ts: Date.now() });
+  courseCache.set(id, { course, wordFormat: wordFormat || {}, ts: Date.now() });
   // Nettoyage des entrées > 2 h
   for (const [k, v] of courseCache)
     if (Date.now() - v.ts > 7200000) courseCache.delete(k);
@@ -259,19 +260,23 @@ function extractJson(raw) {
 
 // ── Génération ────────────────────────────────────────────────────────────
 app.post('/api/generate', async (req, res) => {
-  const { diplome, activite, competence, classe, duree, pedagogyStructure, customInstructions } = req.body;
+  const { diplome, activite, competence, classe, duree, pedagogyStructure, customInstructions, wordFormat } = req.body;
 
   if (!diplome)    return res.status(400).json({ error: 'Le diplôme est requis.' });
   if (!activite)   return res.status(400).json({ error: "L'activité est requise." });
   if (!competence) return res.status(400).json({ error: 'La compétence est requise.' });
   if (!classe)     return res.status(400).json({ error: 'La classe est requise.' });
 
-  // Blocs : priorité au tableau envoyé par le frontend, sinon déduit de la durée
-  const blocks = Array.isArray(req.body.blocks) && req.body.blocks.length
+  // Blocs : normaliser en objets { type, options }
+  const rawBlocks = Array.isArray(req.body.blocks) && req.body.blocks.length
     ? req.body.blocks
     : duree === '2h'
       ? ['theory', 'application', 'theory', 'application', 'synthesis', 'progressive']
       : ['theory', 'application', 'synthesis'];
+
+  const blocks = rawBlocks.map(b =>
+    typeof b === 'string' ? { type: b, options: {} } : { type: b.type || b, options: b.options || {} }
+  );
 
   const refData      = REFERENTIELS[diplome] || {};
   const activiteData = refData.activites?.[activite] || {};
@@ -301,9 +306,26 @@ fais analyser et observer, puis dégage la règle, la définition ou la procédu
     : `STRUCTURE DÉDUCTIVE : pour chaque apport théorique, énonce d'abord la règle/définition/procédure officielle,
 puis illustre immédiatement avec un exemple numérique concret situé dans un commerce ou une grande surface fictive.`;
 
-  const sectionsList = blocks.map((type, i) =>
-    `Section ${i + 1} [${BLOCK_LABELS[type] || type}] :\n${BLOCK_INSTRUCTIONS[type] || type}`
-  ).join('\n\n');
+  const sectionsList = blocks.map((b, i) => {
+    const { type, options } = b;
+    const prevType = i > 0 ? blocks[i - 1].type : null;
+    let instr = BLOCK_INSTRUCTIONS[type] || type;
+
+    // Exemple optionnel sur les blocs théoriques
+    if (type === 'theory' && options?.withExample === false) {
+      instr = instr.replace(
+        /^- "example".*$/m,
+        '- "example"    : null (pas d\'exemple demandé pour cette partie)'
+      );
+    }
+
+    // Liaison obligatoire application → théorie précédente
+    if (type === 'application' && prevType === 'theory') {
+      instr += '\n\nLIAISON AVEC LA THÉORIE PRÉCÉDENTE (impératif) : Cette application doit porter DIRECTEMENT sur les concepts, la formule et le vocabulaire de l\'apport théorique qui précède immédiatement. Même calcul type que l\'exemple théorique, données chiffrées différentes, contexte professionnel différent mais compétence identique.';
+    }
+
+    return `Section ${i + 1} [${BLOCK_LABELS[type] || type}] :\n${instr}`;
+  }).join('\n\n');
 
   const prompt = `Tu es un formateur expert en enseignement professionnel pour les diplômes du commerce et de la distribution.
 
@@ -337,7 +359,7 @@ STYLE OBLIGATOIRE (reproduire le style des cours professionnels français) :
 • Ton professionnel, rigoureux, conforme aux exigences du référentiel
 ${customInstructions ? `\nCONSIGNES DE L'ENSEIGNANT (prioritaires) :\n${customInstructions}` : ''}
 
-STRUCTURE DU COURS (${blocks.length} sections — respecte l'ordre et le contenu de chaque section) :
+STRUCTURE DU COURS (${blocks.length} sections — respecte STRICTEMENT l'ordre et le contenu de chaque section) :
 ${sectionsList}
 
 Réponds UNIQUEMENT avec un objet JSON valide (aucun markdown, aucune balise code) :
@@ -366,10 +388,10 @@ ${JSON_SCHEMA}`;
     const data = await response.json();
     if (data.stop_reason === 'max_tokens') console.warn('Réponse tronquée — réparation JSON');
     const course     = extractJson(data.content[0].text.trim());
-    const downloadId = storeCourse(course);
+    const downloadId = storeCourse(course, wordFormat);
 
     // Génération et sauvegarde du fichier docx pour téléchargement direct
-    const { buffer } = await buildDocx(course);
+    const { buffer } = await buildDocx(course, wordFormat);
     const fileId   = `cours-${downloadId}`;
     const filePath = path.join(FICHIERS_DIR, `${fileId}.docx`);
     fs.writeFileSync(filePath, buffer);
@@ -392,16 +414,19 @@ ${JSON_SCHEMA}`;
   }
 });
 
+// ── Format document (mis à jour avant chaque buildDocx) ──────────────────
+const FORMAT = { font: 'Calibri', fontSize: 22, lineSpacing: 100 };
+
 // ── Helpers docx ──────────────────────────────────────────────────────────
 const run = (text, opts = {}) =>
-  new TextRun({ text: String(text ?? ''), size: 22, ...opts });
+  new TextRun({ text: String(text ?? ''), size: FORMAT.fontSize, ...opts });
 
 const body = (runsOrText, paraOpts = {}) =>
   new Paragraph({
     children: typeof runsOrText === 'string'
       ? [run(runsOrText)]
       : Array.isArray(runsOrText) ? runsOrText : [runsOrText],
-    spacing: { after: 100 },
+    spacing: { after: FORMAT.lineSpacing },
     ...paraOpts
   });
 
@@ -929,7 +954,13 @@ function buildDocumentTemplate(documentType, company, rows) {
 }
 
 // ── Fonction de génération du buffer docx ────────────────────────────────
-async function buildDocx(course) {
+async function buildDocx(course, wordFormat = {}) {
+  // Appliquer les options de mise en forme (safe : buildDocx est synchrone jusqu'à Packer.toBuffer)
+  FORMAT.fontSize    = wordFormat.fontSize    || 22;
+  FORMAT.lineSpacing = wordFormat.lineSpacing || 100;
+  FORMAT.font        = wordFormat.font        || 'Calibri';
+  const wShowAns = wordFormat.showAnswers !== false;
+  const wPageNum = wordFormat.pageNumbers  || false;
 
   try {
     const children = [];
@@ -1062,7 +1093,7 @@ async function buildDocx(course) {
           (sec.questions || []).forEach((qa, qi) => {
             children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
               { spacing: { before: 120, after: 40 } }));
-            if (qa.answer) {
+            if (qa.answer && wShowAns) {
               children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                 { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
             }
@@ -1137,7 +1168,7 @@ async function buildDocx(course) {
             (ex.questions || []).forEach((qa, qi) => {
               children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
                 { spacing: { before: 120, after: 40 } }));
-              if (qa.answer) {
+              if (qa.answer && wShowAns) {
                 children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                   { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
               }
@@ -1156,7 +1187,7 @@ async function buildDocx(course) {
           (sec.questions || []).forEach((qa, qi) => {
             children.push(body(run(`${qi + 1}.  ${qa.q}`, { bold: true }),
               { spacing: { before: 120, after: 40 } }));
-            if (qa.answer) {
+            if (qa.answer && wShowAns) {
               children.push(body(run(qa.answer, { italics: true, color: 'DC2626' }),
                 { indent: { left: 300 }, spacing: { before: 0, after: 80 } }));
             }
@@ -1171,7 +1202,25 @@ async function buildDocx(course) {
       }
     });
 
-    const doc      = new Document({ sections: [{ children }] });
+    const footers = wPageNum ? {
+      default: new Footer({
+        children: [new Paragraph({
+          children: [
+            new TextRun({ children: [PageNumber.CURRENT], size: 18 }),
+            new TextRun({ text: ' / ', size: 18 }),
+            new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18 }),
+          ],
+          alignment: AlignmentType.CENTER,
+        })]
+      })
+    } : undefined;
+
+    const doc = new Document({
+      styles: {
+        default: { document: { run: { font: FORMAT.font } } }
+      },
+      sections: [{ properties: {}, footers, children }]
+    });
     const buffer   = await Packer.toBuffer(doc);
     const filename = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.docx';
     return { buffer, filename };
@@ -1220,7 +1269,7 @@ app.get('/api/download/:id', async (req, res) => {
   const entry = courseCache.get(req.params.id);
   if (!entry) return res.status(404).send('Lien expiré ou invalide. Régénérez le cours.');
   try {
-    const { buffer, filename } = await buildDocx(entry.course);
+    const { buffer, filename } = await buildDocx(entry.course, entry.wordFormat);
     setDownloadHeaders(res, filename);
     res.send(buffer);
   } catch (err) {

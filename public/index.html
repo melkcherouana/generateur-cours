@@ -246,6 +246,40 @@
 
     .hidden { display: none !important; }
 
+    /* ── Checkbox reset ── */
+    input[type="checkbox"] {
+      width: 16px; height: 16px; padding: 0; border: 1.5px solid #d2d2d7;
+      border-radius: 4px; cursor: pointer; accent-color: #5b4fcf;
+    }
+
+    /* ── Toggle exemple sur blocs théorie ── */
+    .ex-toggle {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .72rem; font-weight: 600; color: #4338ca;
+      background: #eef2ff; border-radius: 6px; padding: 3px 8px;
+      cursor: pointer; flex-shrink: 0; user-select: none;
+    }
+    .ex-toggle input { margin: 0; }
+
+    /* ── Badge liaison théorie ── */
+    .link-badge {
+      font-size: .68rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; background: #f0fdf4; color: #15803d;
+      border: 1px solid #86efac; flex-shrink: 0;
+    }
+
+    /* ── Mise en forme Word ── */
+    .fmt-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .check-group {
+      display: flex; flex-direction: column; gap: 10px; justify-content: center;
+    }
+    .check-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .78rem; font-weight: 600; color: #3a3a3c; cursor: pointer;
+    }
+
     @media (max-width: 480px) {
       .fg { grid-template-columns: 1fr; }
       .full { grid-column: 1; }
@@ -337,6 +371,43 @@
     <div class="field">
       <label for="custom">Précisez vos contraintes pédagogiques</label>
       <textarea id="custom" placeholder="ex : Insistez sur les documents de réception (bon de livraison, bon de commande). Les exercices doivent utiliser des prix réels de grande distribution. Intégrer les règles d'hygiène alimentaire HACCP pour les produits frais."></textarea>
+    </div>
+  </div>
+
+  <!-- 5 · Mise en forme Word -->
+  <div class="card">
+    <div class="card-title">5 — Mise en forme Word <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c7c7cc;">(appliquée au fichier .docx)</span></div>
+    <div class="fmt-row">
+      <div class="field">
+        <label for="wFont">Police</label>
+        <select id="wFont">
+          <option value="Calibri">Calibri (défaut)</option>
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="wSize">Taille de police</label>
+        <select id="wSize">
+          <option value="22">11 pt — normal</option>
+          <option value="24">12 pt — grand</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="wSpacing">Interligne</label>
+        <select id="wSpacing">
+          <option value="100">Simple</option>
+          <option value="200">1,5</option>
+        </select>
+      </div>
+      <div class="check-group">
+        <label class="check-label">
+          <input type="checkbox" id="wAnswers" checked> Afficher les réponses
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="wPageNum"> Numérotation des pages
+        </label>
+      </div>
     </div>
   </div>
 
@@ -454,7 +525,7 @@ const BLOCKS = {
 
 // Structure par défaut (1h)
 let blocks = [
-  { id: uid(), type: 'theory' },
+  { id: uid(), type: 'theory', options: { withExample: true } },
   { id: uid(), type: 'application' },
   { id: uid(), type: 'synthesis' },
 ];
@@ -475,6 +546,8 @@ function renderBlocks() {
   }
   list.innerHTML = blocks.map((b, i) => {
     const def = BLOCKS[b.type] || { label: b.type, icon: '▪', cls: b.type };
+    const isLinked = b.type === 'application' && i > 0 && blocks[i - 1].type === 'theory';
+    const withEx   = b.type === 'theory' ? (b.options?.withExample !== false) : null;
     return `
     <div class="block-item" draggable="true" data-idx="${i}"
       ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})"
@@ -484,6 +557,12 @@ function renderBlocks() {
       <span class="block-num">${i + 1}</span>
       <span class="block-icon">${def.icon}</span>
       <span class="block-label">${def.label}</span>
+      ${isLinked ? '<span class="link-badge">⤷ liée à la théorie</span>' : ''}
+      ${withEx !== null ? `
+        <label class="ex-toggle" onclick="event.stopPropagation()">
+          <input type="checkbox" ${withEx ? 'checked' : ''}
+            onchange="setBlockOption(${i},'withExample',this.checked)"> Exemple
+        </label>` : ''}
       <span class="block-type-pill tp-${def.cls}">${def.label}</span>
       <button class="del-btn" onclick="removeBlock(${i})" title="Supprimer">✕</button>
     </div>`;
@@ -491,8 +570,15 @@ function renderBlocks() {
 }
 
 function addBlock(type) {
-  blocks.push({ id: uid(), type });
+  const b = { id: uid(), type };
+  if (type === 'theory') b.options = { withExample: true };
+  blocks.push(b);
   renderBlocks();
+}
+
+function setBlockOption(i, key, value) {
+  if (!blocks[i].options) blocks[i].options = {};
+  blocks[i].options[key] = value;
 }
 
 function removeBlock(i) {
@@ -539,7 +625,11 @@ function onDureeChange() {
   const defaults = duree === '2h'
     ? ['theory', 'application', 'theory', 'application', 'synthesis', 'progressive']
     : ['theory', 'application', 'synthesis'];
-  blocks = defaults.map(type => ({ id: uid(), type }));
+  blocks = defaults.map(type => {
+    const b = { id: uid(), type };
+    if (type === 'theory') b.options = { withExample: true };
+    return b;
+  });
   renderBlocks();
 }
 
@@ -615,9 +705,16 @@ async function generate() {
         competence,
         classe,
         duree:              document.getElementById('duree').value,
-        blocks:             blocks.map(b => b.type),
+        blocks:             blocks.map(b => ({ type: b.type, options: b.options || {} })),
         pedagogyStructure:  document.getElementById('pedagogy').value,
         customInstructions: document.getElementById('custom').value.trim(),
+        wordFormat: {
+          font:        document.getElementById('wFont').value,
+          fontSize:    parseInt(document.getElementById('wSize').value, 10),
+          lineSpacing: parseInt(document.getElementById('wSpacing').value, 10),
+          showAnswers: document.getElementById('wAnswers').checked,
+          pageNumbers: document.getElementById('wPageNum').checked,
+        },
       })
     });
     const d = await r.json();
@@ -750,7 +847,7 @@ function resetCourse() {
   document.getElementById('custom').value  = '';
   onDiplomeChange();
   blocks = [
-    { id: uid(), type: 'theory' },
+    { id: uid(), type: 'theory', options: { withExample: true } },
     { id: uid(), type: 'application' },
     { id: uid(), type: 'synthesis' },
   ];
