@@ -281,7 +281,7 @@
     }
 
     @media (max-width: 480px) {
-      .fg { grid-template-columns: 1fr; }
+      .fg, .fmt-row { grid-template-columns: 1fr; }
       .full { grid-column: 1; }
       .actions { flex-direction: column; }
     }
@@ -435,6 +435,9 @@
       <ul id="cObjectives"></ul>
     </div>
 
+    <div id="noAnswersBanner" class="hidden" style="margin:10px 0;padding:8px 14px;background:#fff7ed;border-left:3px solid #f97316;border-radius:0 8px 8px 0;font-size:.8rem;color:#c2410c;font-weight:600;">
+      ⚠ Réponses masquées dans le fichier Word — l'aperçu ci-dessous les affiche pour vous.
+    </div>
     <div class="sections" id="cSectionsList"></div>
 
     <div class="actions">
@@ -824,6 +827,8 @@ function renderCourse(c, classe) {
     </div>`;
   }).join('');
 
+  const showAns = document.getElementById('wAnswers').checked;
+  document.getElementById('noAnswersBanner').classList.toggle('hidden', showAns);
   document.getElementById('courseCard').classList.remove('hidden');
   document.getElementById('courseCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
