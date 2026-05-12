@@ -321,7 +321,7 @@ puis illustre immédiatement avec un exemple numérique concret situé dans un c
 
     // Liaison obligatoire application → théorie précédente
     if (type === 'application' && prevType === 'theory') {
-      instr += '\n\nLIAISON AVEC LA THÉORIE PRÉCÉDENTE (impératif) : Cette application doit porter DIRECTEMENT sur les concepts, la formule et le vocabulaire de l\'apport théorique qui précède immédiatement. Même calcul type que l\'exemple théorique, données chiffrées différentes, contexte professionnel différent mais compétence identique.';
+      instr += '\n\nLIAISON : application directement liée à la théorie précédente — mêmes formules, vocabulaire identique, données chiffrées différentes.';
     }
 
     return `Section ${i + 1} [${BLOCK_LABELS[type] || type}] :\n${instr}`;
@@ -375,7 +375,7 @@ ${JSON_SCHEMA}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 8192,
+        max_tokens: 16000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -386,8 +386,16 @@ ${JSON_SCHEMA}`;
     }
 
     const data = await response.json();
-    if (data.stop_reason === 'max_tokens') console.warn('Réponse tronquée — réparation JSON');
-    const course     = extractJson(data.content[0].text.trim());
+    const truncated = data.stop_reason === 'max_tokens';
+    if (truncated) console.warn('Réponse tronquée — réparation JSON');
+    const course = extractJson(data.content[0].text.trim());
+
+    // Détecter les sections manquantes (troncature)
+    const generatedTypes = new Set(course.sections.map(s => s.type));
+    const missing = blocks
+      .filter(b => !generatedTypes.has(b.type))
+      .map(b => BLOCK_LABELS[b.type] || b.type);
+
     const downloadId = storeCourse(course, wordFormat);
 
     // Génération et sauvegarde du fichier docx pour téléchargement direct
@@ -406,7 +414,7 @@ ${JSON_SCHEMA}`;
     const proto   = req.headers['x-forwarded-proto'] || req.protocol;
     const fileUrl = `${proto}://${req.get('host')}/fichiers/${fileId}.docx`;
 
-    res.json({ course, downloadId, fileUrl });
+    res.json({ course, downloadId, fileUrl, missing });
 
   } catch (err) {
     console.error(err);

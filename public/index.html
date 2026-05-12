@@ -729,6 +729,9 @@ async function generate() {
     if (fileUrl || downloadId) {
       document.getElementById('dlBtn').style.display = '';
     }
+    if (d.missing?.length) {
+      showErr(`⚠ Réponse tronquée — sections manquantes : ${d.missing.join(', ')}. Régénérez le cours.`);
+    }
   } catch (e) {
     showErr('Erreur : ' + e.message);
   } finally {
